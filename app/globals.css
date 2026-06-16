@@ -1,0 +1,96 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0f0f1a;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+h1 {
+  font-size: 48px;
+  color: #e94560;
+}
+
+main {
+  text-align: center;
+  padding: 100px 20px;
+}.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background-color: #16213e;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #e94560;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  margin-left: 30px;
+  font-size: 16px;
+}
+
+.nav-links a:hover {
+  color: #e94560;
+}
+
+.hero {
+  padding: 120px 20px;
+  text-align: center;
+}
+
+.hero p {
+  font-size: 20px;
+  color: #a0a0b0;
+  margin-top: 16px;
+}
+
+.btn {
+  margin-top: 40px;
+  background-color: #e94560;
+  color: white;
+  border: none;
+  padding: 16px 48px;
+  font-size: 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #c73652;
+}.info-grid {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 60px;
+  flex-wrap: wrap;
+}
+
+.info-card {
+  background-color: #16213e;
+  padding: 40px 30px;
+  border-radius: 12px;
+  width: 280px;
+  text-align: center;
+}
+
+.info-card h2 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: #e94560;
+}
+
+.info-card p {
+  color: #a0a0b0;
+  font-size: 16px;
+  line-height: 1.6;
+}
