@@ -28,6 +28,17 @@ export default function Reservations() {
     loadResources()
   }, [selectedType])
 
+  function getTodayPoland() {
+    const now = new Date()
+    const polandDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Warsaw',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+    return polandDate
+  }
+
   function handleChange(e) {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
@@ -35,6 +46,21 @@ export default function Reservations() {
   async function handleSubmit(e) {
     e.preventDefault()
     setMessage('')
+
+    // Check if date is in the past using Polish timezone
+    const todayPoland = getTodayPoland()
+    const selectedDate = formData.date
+
+    const todayParts = todayPoland.split('-')
+    const selectedParts = selectedDate.split('-')
+
+    const todayNum = parseInt(todayParts[0]) * 10000 + parseInt(todayParts[1]) * 100 + parseInt(todayParts[2])
+    const selectedNum = parseInt(selectedParts[0]) * 10000 + parseInt(selectedParts[1]) * 100 + parseInt(selectedParts[2])
+
+    if (selectedNum < todayNum) {
+      setMessage('Nie można rezerwować terminów w przeszłości. Dzisiaj jest: ' + todayPoland)
+      return
+    }
 
     // Check for conflicting reservations
     const { data: conflicts } = await supabase
@@ -112,6 +138,7 @@ export default function Reservations() {
             placeholder="Twoje imię i nazwisko"
             value={formData.customer_name}
             onChange={handleChange}
+            maxLength={30}
             required
           />
 
@@ -130,6 +157,7 @@ export default function Reservations() {
             placeholder="Numer telefonu"
             value={formData.customer_phone}
             onChange={handleChange}
+            maxLength={25}
           />
 
           <input
@@ -137,6 +165,7 @@ export default function Reservations() {
             name="date"
             value={formData.date}
             onChange={handleChange}
+            min={getTodayPoland()}
             required
           />
 
