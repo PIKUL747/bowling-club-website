@@ -6,6 +6,7 @@ import { supabase } from '../supabase'
 export default function Reservations() {
   const [resources, setResources] = useState([])
   const [selectedType, setSelectedType] = useState('bowling')
+  const [bookedSlots, setBookedSlots] = useState([])
   const [formData, setFormData] = useState({
     resource_id: '',
     customer_name: '',
@@ -28,6 +29,22 @@ export default function Reservations() {
     loadResources()
   }, [selectedType])
 
+  useEffect(() => {
+    async function loadBookedSlots() {
+      if (!formData.resource_id || !formData.date) {
+        setBookedSlots([])
+        return
+      }
+      const { data } = await supabase
+        .from('reservations')
+        .select('start_time, end_time')
+        .eq('resource_id', formData.resource_id)
+        .eq('date', formData.date)
+      setBookedSlots(data || [])
+    }
+    loadBookedSlots()
+  }, [formData.resource_id, formData.date])
+
   function getTodayPoland() {
     const now = new Date()
     const polandDate = new Intl.DateTimeFormat('en-CA', {
@@ -45,6 +62,10 @@ export default function Reservations() {
     return date.getDay()
   }
 
+  function isSlotTaken(slot) {
+    return bookedSlots.some(b => slot >= b.start_time && slot < b.end_time)
+  }
+
   function getAvailableSlots(dateString) {
     const day = getDayOfWeek(dateString)
     if (day === null) return []
@@ -53,14 +74,18 @@ export default function Reservations() {
     const openHour = isWeekend ? 13 : 15
     const slots = []
 
-    // Billiards always whole hours only
-    // Bowling: weekdays get half hours, weekends whole hours only
     const allowHalfHours = selectedType === 'bowling' && !isWeekend
 
     for (let hour = openHour; hour <= 23; hour++) {
-      slots.push(String(hour).padStart(2, '0') + ':00')
+      const wholeSlot = String(hour).padStart(2, '0') + ':00'
+      if (!isSlotTaken(wholeSlot)) {
+        slots.push(wholeSlot)
+      }
       if (allowHalfHours && hour < 23) {
-        slots.push(String(hour).padStart(2, '0') + ':30')
+        const halfSlot = String(hour).padStart(2, '0') + ':30'
+        if (!isSlotTaken(halfSlot)) {
+          slots.push(halfSlot)
+        }
       }
     }
 
@@ -69,17 +94,41 @@ export default function Reservations() {
 
   function getEndSlots(dateString, startTime) {
     if (!startTime) return []
-    const allSlots = getAvailableSlots(dateString)
-    const startIndex = allSlots.indexOf(startTime)
-    if (startIndex === -1) return []
+    const day = getDayOfWeek(dateString)
+    if (day === null) return []
+
+    const isWeekend = day === 5 || day === 6 || day === 0
+    const allowHalfHours = selectedType === 'bowling' && !isWeekend
 
     const endSlots = []
-    for (let i = startIndex + 1; i <= startIndex + 6 && i < allSlots.length; i++) {
-      endSlots.push(allSlots[i])
-    }
+    let current = startTime
 
-    if (!endSlots.includes('00:00')) {
-      endSlots.push('00:00')
+    for (let i = 0; i < 6; i++) {
+      const [h, m] = current.split(':').map(Number)
+      let nextH = h
+      let nextM = m
+
+      if (allowHalfHours) {
+        nextM += 30
+      } else {
+        nextM += 60
+      }
+
+      if (nextM >= 60) {
+        nextH += Math.floor(nextM / 60)
+        nextM = nextM % 60
+      }
+
+      if (nextH >= 24) break
+
+      const nextSlot = String(nextH).padStart(2, '0') + ':' + String(nextM).padStart(2, '0')
+
+      if (isSlotTaken(nextSlot) && nextSlot !== '00:00') break
+
+      endSlots.push(nextSlot)
+      current = nextSlot
+
+      if (nextSlot === '00:00') break
     }
 
     return endSlots
@@ -153,6 +202,7 @@ export default function Reservations() {
       setMessage('Błąd: ' + error.message)
     } else {
       setMessage('Rezerwacja przyjęta! Do zobaczenia!')
+      setBookedSlots([])
       setFormData({
         resource_id: '',
         customer_name: '',
@@ -240,7 +290,7 @@ export default function Reservations() {
               name="start_time"
               value={formData.start_time}
               onChange={handleChange}
-              disabled={!formData.date}
+              disabled={!formData.date || !formData.resource_id}
             >
               <option value="">Godzina start</option>
               {availableSlots.map(slot => (
