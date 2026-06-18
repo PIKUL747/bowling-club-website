@@ -39,30 +39,95 @@ export default function Reservations() {
     return polandDate
   }
 
+  function getDayOfWeek(dateString) {
+    if (!dateString) return null
+    const date = new Date(dateString + 'T12:00:00')
+    return date.getDay()
+  }
+
+  function getAvailableSlots(dateString) {
+    const day = getDayOfWeek(dateString)
+    if (day === null) return []
+
+    const isWeekend = day === 5 || day === 6 || day === 0
+    const openHour = isWeekend ? 13 : 15
+    const slots = []
+
+    for (let hour = openHour; hour <= 23; hour++) {
+      slots.push(String(hour).padStart(2, '0') + ':00')
+      if (!isWeekend && hour < 23) {
+        slots.push(String(hour).padStart(2, '0') + ':30')
+      }
+    }
+
+    return slots
+  }
+
+  function getEndSlots(dateString, startTime) {
+    if (!startTime) return []
+    const allSlots = getAvailableSlots(dateString)
+    const startIndex = allSlots.indexOf(startTime)
+    if (startIndex === -1) return []
+
+    const endSlots = []
+    for (let i = startIndex + 1; i <= startIndex + 6 && i < allSlots.length; i++) {
+      endSlots.push(allSlots[i])
+    }
+
+    if (!endSlots.includes('00:00')) {
+      endSlots.push('00:00')
+    }
+
+    return endSlots
+  }
+
   function handleChange(e) {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const updated = { ...formData, [e.target.name]: e.target.value }
+    if (e.target.name === 'date') {
+      updated.start_time = ''
+      updated.end_time = ''
+    }
+    if (e.target.name === 'start_time') {
+      updated.end_time = ''
+    }
+    setFormData(updated)
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setMessage('')
 
-    // Check if date is in the past using Polish timezone
-    const todayPoland = getTodayPoland()
-    const selectedDate = formData.date
-
-    const todayParts = todayPoland.split('-')
-    const selectedParts = selectedDate.split('-')
-
-    const todayNum = parseInt(todayParts[0]) * 10000 + parseInt(todayParts[1]) * 100 + parseInt(todayParts[2])
-    const selectedNum = parseInt(selectedParts[0]) * 10000 + parseInt(selectedParts[1]) * 100 + parseInt(selectedParts[2])
-
-    if (selectedNum < todayNum) {
-      setMessage('Nie można rezerwować terminów w przeszłości. Dzisiaj jest: ' + todayPoland)
+    if (!formData.resource_id) {
+      setMessage('Proszę wybrać tor lub stół.')
+      return
+    }
+    if (!formData.customer_name) {
+      setMessage('Proszę podać imię i nazwisko.')
+      return
+    }
+    if (!formData.customer_email) {
+      setMessage('Proszę podać email.')
+      return
+    }
+    if (!formData.date) {
+      setMessage('Proszę wybrać datę.')
+      return
+    }
+    if (!formData.start_time) {
+      setMessage('Proszę wybrać godzinę rozpoczęcia.')
+      return
+    }
+    if (!formData.end_time) {
+      setMessage('Proszę wybrać godzinę zakończenia.')
       return
     }
 
-    // Check for conflicting reservations
+    const todayPoland = getTodayPoland()
+    if (formData.date < todayPoland) {
+      setMessage('Nie można rezerwować terminów w przeszłości.')
+      return
+    }
+
     const { data: conflicts } = await supabase
       .from('reservations')
       .select('*')
@@ -96,13 +161,15 @@ export default function Reservations() {
     }
   }
 
+  const availableSlots = getAvailableSlots(formData.date)
+  const endSlots = getEndSlots(formData.date, formData.start_time)
+
   return (
     <main>
       <section className="hero">
         <h1>Rezerwacje</h1>
         <p>Zarezerwuj tor bowlingowy lub stół bilardowy</p>
 
-        {/* Type selector */}
         <div className="type-selector">
           <button
             className={selectedType === 'bowling' ? 'type-btn active' : 'type-btn'}
@@ -118,13 +185,11 @@ export default function Reservations() {
           </button>
         </div>
 
-        {/* Booking form */}
         <form className="booking-form" onSubmit={handleSubmit}>
           <select
             name="resource_id"
             value={formData.resource_id}
             onChange={handleChange}
-            required
           >
             <option value="">Wybierz {selectedType === 'bowling' ? 'tor' : 'stół'}</option>
             {resources.map(r => (
@@ -139,7 +204,6 @@ export default function Reservations() {
             value={formData.customer_name}
             onChange={handleChange}
             maxLength={30}
-            required
           />
 
           <input
@@ -148,7 +212,6 @@ export default function Reservations() {
             placeholder="Twój email"
             value={formData.customer_email}
             onChange={handleChange}
-            required
           />
 
           <input
@@ -166,25 +229,32 @@ export default function Reservations() {
             value={formData.date}
             onChange={handleChange}
             min={getTodayPoland()}
-            required
           />
 
           <div className="time-row">
-            <input
-              type="time"
+            <select
               name="start_time"
               value={formData.start_time}
               onChange={handleChange}
-              required
-            />
+              disabled={!formData.date}
+            >
+              <option value="">Godzina start</option>
+              {availableSlots.map(slot => (
+                <option key={slot} value={slot}>{slot}</option>
+              ))}
+            </select>
             <span>do</span>
-            <input
-              type="time"
+            <select
               name="end_time"
               value={formData.end_time}
               onChange={handleChange}
-              required
-            />
+              disabled={!formData.start_time}
+            >
+              <option value="">Godzina koniec</option>
+              {endSlots.map(slot => (
+                <option key={slot} value={slot}>{slot}</option>
+              ))}
+            </select>
           </div>
 
           <button type="submit" className="btn">Zarezerwuj</button>
