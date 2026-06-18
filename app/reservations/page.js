@@ -53,9 +53,13 @@ export default function Reservations() {
     const openHour = isWeekend ? 13 : 15
     const slots = []
 
+    // Billiards always whole hours only
+    // Bowling: weekdays get half hours, weekends whole hours only
+    const allowHalfHours = selectedType === 'bowling' && !isWeekend
+
     for (let hour = openHour; hour <= 23; hour++) {
       slots.push(String(hour).padStart(2, '0') + ':00')
-      if (!isWeekend && hour < 23) {
+      if (allowHalfHours && hour < 23) {
         slots.push(String(hour).padStart(2, '0') + ':30')
       }
     }
