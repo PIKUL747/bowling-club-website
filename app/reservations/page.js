@@ -62,34 +62,42 @@ export default function Reservations() {
     return date.getDay()
   }
 
-  function isSlotTaken(slot) {
-    return bookedSlots.some(b => slot >= b.start_time && slot < b.end_time)
+  function timeToMinutes(time) {
+    if (time === '00:00') return 24 * 60
+    const [h, m] = time.split(':').map(Number)
+    return h * 60 + m
   }
 
-  function getAvailableSlots(dateString) {
+  function isStartSlotTaken(slot) {
+    const slotMinutes = timeToMinutes(slot)
+    return bookedSlots.some(b => {
+      const start = timeToMinutes(b.start_time)
+      const end = timeToMinutes(b.end_time)
+      return slotMinutes >= start && slotMinutes < end
+    })
+  }
+
+  function getAllSlots(dateString) {
     const day = getDayOfWeek(dateString)
     if (day === null) return []
 
     const isWeekend = day === 5 || day === 6 || day === 0
     const openHour = isWeekend ? 13 : 15
+    const allowHalfHours = selectedType === 'bowling' && !isWeekend
     const slots = []
 
-    const allowHalfHours = selectedType === 'bowling' && !isWeekend
-
     for (let hour = openHour; hour <= 23; hour++) {
-      const wholeSlot = String(hour).padStart(2, '0') + ':00'
-      if (!isSlotTaken(wholeSlot)) {
-        slots.push(wholeSlot)
-      }
+      slots.push(String(hour).padStart(2, '0') + ':00')
       if (allowHalfHours && hour < 23) {
-        const halfSlot = String(hour).padStart(2, '0') + ':30'
-        if (!isSlotTaken(halfSlot)) {
-          slots.push(halfSlot)
-        }
+        slots.push(String(hour).padStart(2, '0') + ':30')
       }
     }
 
     return slots
+  }
+
+  function getAvailableStartSlots(dateString) {
+    return getAllSlots(dateString).filter(slot => !isStartSlotTaken(slot))
   }
 
   function getEndSlots(dateString, startTime) {
@@ -103,31 +111,42 @@ export default function Reservations() {
     const endSlots = []
     let current = startTime
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const [h, m] = current.split(':').map(Number)
       let nextH = h
-      let nextM = m
-
-      if (allowHalfHours) {
-        nextM += 30
-      } else {
-        nextM += 60
-      }
+      let nextM = m + (allowHalfHours ? 30 : 60)
 
       if (nextM >= 60) {
         nextH += Math.floor(nextM / 60)
         nextM = nextM % 60
       }
 
-      if (nextH >= 24) break
+      if (nextH > 24) break
+      if (nextH === 24) {
+        endSlots.push('00:00')
+        break
+      }
 
       const nextSlot = String(nextH).padStart(2, '0') + ':' + String(nextM).padStart(2, '0')
 
-      if (isSlotTaken(nextSlot) && nextSlot !== '00:00') break
+      // Stop if we hit a booked start time
+      const blocked = bookedSlots.some(b => {
+        const bookedStart = timeToMinutes(b.start_time)
+        const nextMinutes = timeToMinutes(nextSlot)
+        return nextMinutes > timeToMinutes(startTime) && nextMinutes <= bookedStart && timeToMinutes(startTime) < bookedStart
+      })
 
       endSlots.push(nextSlot)
       current = nextSlot
 
+      // Stop adding end slots after a booked slot
+      const hitBooking = bookedSlots.some(b => {
+        const nextMinutes = timeToMinutes(nextSlot)
+        const bookedStart = timeToMinutes(b.start_time)
+        return nextMinutes > timeToMinutes(startTime) && nextMinutes >= bookedStart
+      })
+
+      if (hitBooking) break
       if (nextSlot === '00:00') break
     }
 
@@ -215,7 +234,7 @@ export default function Reservations() {
     }
   }
 
-  const availableSlots = getAvailableSlots(formData.date)
+  const availableSlots = getAvailableStartSlots(formData.date)
   const endSlots = getEndSlots(formData.date, formData.start_time)
 
   return (
