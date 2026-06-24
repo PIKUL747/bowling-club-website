@@ -8,23 +8,15 @@ export default function Admin() {
   const [password, setPassword] = useState('')
   const [session, setSession] = useState(null)
   const [reservations, setReservations] = useState([])
-  const [filtered, setFiltered] = useState([])
   const [message, setMessage] = useState('')
-  const [filterDate, setFilterDate] = useState('')
-  const [filterType, setFilterType] = useState('all')
-  const [filterName, setFilterName] = useState('')
-  const [showAll, setShowAll] = useState(false)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [lanes, setLanes] = useState([])
+  const [view, setView] = useState('grid')
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) loadReservations()
-    })
-  }, [])
-
-  useEffect(() => {
-    applyFilters()
-  }, [reservations, filterDate, filterType, filterName, showAll])
+  const timeSlots = [
+    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
+    '19:00', '20:00', '21:00', '22:00', '23:00'
+  ]
 
   function getTodayPoland() {
     const now = new Date()
@@ -36,29 +28,39 @@ export default function Admin() {
     }).format(now)
   }
 
-  function applyFilters() {
-    let result = [...reservations]
-    const today = getTodayPoland()
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      if (session) {
+        const today = getTodayPoland()
+        setSelectedDate(today)
+        loadLanes()
+      }
+    })
+  }, [])
 
-    if (!showAll) {
-      result = result.filter(r => r.date >= today)
+  useEffect(() => {
+    if (session && selectedDate) {
+      loadReservations(selectedDate)
     }
+  }, [session, selectedDate])
 
-    if (filterDate) {
-      result = result.filter(r => r.date === filterDate)
-    }
+  async function loadLanes() {
+    const { data } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('type', 'bowling')
+      .order('id')
+    setLanes(data || [])
+  }
 
-    if (filterType !== 'all') {
-      result = result.filter(r => r.resources?.type === filterType)
-    }
-
-    if (filterName) {
-      result = result.filter(r =>
-        r.customer_name.toLowerCase().includes(filterName.toLowerCase())
-      )
-    }
-
-    setFiltered(result)
+  async function loadReservations(date) {
+    const { data } = await supabase
+      .from('reservations')
+      .select('*, resources(name, type)')
+      .eq('date', date)
+      .order('start_time')
+    setReservations(data || [])
   }
 
   async function handleLogin(e) {
@@ -70,7 +72,9 @@ export default function Admin() {
       setMessage('')
       const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
-      loadReservations()
+      const today = getTodayPoland()
+      setSelectedDate(today)
+      loadLanes()
     }
   }
 
@@ -78,36 +82,39 @@ export default function Admin() {
     await supabase.auth.signOut()
     setSession(null)
     setReservations([])
-    setFiltered([])
-  }
-
-  async function loadReservations() {
-    const { data } = await supabase
-      .from('reservations')
-      .select('*, resources(name, type)')
-      .order('date', { ascending: true })
-    setReservations(data || [])
+    setLanes([])
   }
 
   async function handleDelete(id) {
     const confirmed = window.confirm('Czy na pewno chcesz usunąć tę rezerwację?')
     if (!confirmed) return
-
     const { error } = await supabase
       .from('reservations')
       .delete()
       .eq('id', id)
     if (!error) {
-      const updated = reservations.filter(r => r.id !== id)
-      setReservations(updated)
+      loadReservations(selectedDate)
     }
   }
 
-  function clearFilters() {
-    setFilterDate('')
-    setFilterType('all')
-    setFilterName('')
-    setShowAll(false)
+  function getReservationForSlot(laneId, timeSlot) {
+    return reservations.find(r => {
+      if (r.resource_id !== laneId) return false
+      return timeSlot >= r.start_time && timeSlot < r.end_time
+    })
+  }
+
+  function isFirstSlotOfReservation(laneId, timeSlot) {
+    const r = getReservationForSlot(laneId, timeSlot)
+    if (!r) return false
+    return r.start_time === timeSlot
+  }
+
+  function getReservationRowSpan(reservation) {
+    const start = timeSlots.indexOf(reservation.start_time)
+    let end = reservation.end_time === '00:00' ? timeSlots.length : timeSlots.indexOf(reservation.end_time)
+    if (end === -1) end = timeSlots.length
+    return end - start
   }
 
   if (!session) {
@@ -116,7 +123,6 @@ export default function Admin() {
         <section className="hero">
           <h1>Panel admina</h1>
           <p>Zaloguj się aby zobaczyć rezerwacje</p>
-
           <form className="booking-form" onSubmit={handleLogin}>
             <input
               type="email"
@@ -134,7 +140,6 @@ export default function Admin() {
             />
             <button type="submit" className="btn">Zaloguj się</button>
           </form>
-
           {message && <p className="booking-message" style={{color: '#e94560'}}>{message}</p>}
         </section>
       </main>
@@ -149,88 +154,137 @@ export default function Admin() {
           <button className="btn" onClick={handleLogout}>Wyloguj</button>
         </div>
 
-        {/* Filters */}
-        <div className="admin-filters">
-          <input
-            type="text"
-            placeholder="Szukaj po imieniu..."
-            value={filterName}
-            onChange={e => setFilterName(e.target.value)}
-            className="admin-filter-input"
-          />
-
+        {/* Date picker and view toggle */}
+        <div style={{display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap'}}>
           <input
             type="date"
-            value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
             className="admin-filter-input"
           />
-
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="admin-filter-input"
-          >
-            <option value="all">Wszystkie</option>
-            <option value="bowling">Bowling</option>
-            <option value="billiards">Bilard</option>
-          </select>
-
           <button
             className="type-btn"
-            onClick={() => setShowAll(!showAll)}
-            style={{borderColor: showAll ? '#e94560' : ''}}
+            style={{borderColor: selectedDate === getTodayPoland() ? '#e94560' : ''}}
+            onClick={() => setSelectedDate(getTodayPoland())}
           >
-            {showAll ? 'Pokaż nadchodzące' : 'Pokaż wszystkie'}
+            Dzisiaj
           </button>
-
-          <button className="type-btn" onClick={clearFilters}>
-            Wyczyść filtry
-          </button>
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button
+              className={view === 'grid' ? 'type-btn active' : 'type-btn'}
+              onClick={() => setView('grid')}
+            >
+              📅 Siatka
+            </button>
+            <button
+              className={view === 'list' ? 'type-btn active' : 'type-btn'}
+              onClick={() => setView('list')}
+            >
+              📋 Lista
+            </button>
+          </div>
         </div>
 
         <p style={{marginBottom: '20px', color: '#a0a0b0'}}>
-          Wyświetlane rezerwacje: {filtered.length} / Wszystkie: {reservations.length}
+          Rezerwacje na: <strong style={{color: 'white'}}>{selectedDate}</strong> — łącznie: {reservations.length}
         </p>
 
-        {filtered.length === 0 ? (
-          <p style={{color: '#a0a0b0'}}>Brak rezerwacji spełniających kryteria</p>
-        ) : (
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
+        {/* GRID VIEW */}
+        {view === 'grid' && (
+          <div className="schedule-wrapper">
+            <table className="schedule-table">
               <thead>
                 <tr>
-                  <th>Data</th>
-                  <th>Godzina</th>
-                  <th>Tor/Stół</th>
-                  <th>Imię</th>
-                  <th>Email</th>
-                  <th>Telefon</th>
-                  <th>Akcja</th>
+                  <th className="schedule-time-header">Godzina</th>
+                  {lanes.map(lane => (
+                    <th key={lane.id} className="schedule-lane-header">{lane.name}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(r => (
-                  <tr key={r.id}>
-                    <td>{r.date}</td>
-                    <td>{r.start_time} - {r.end_time}</td>
-                    <td>{r.resources?.name}</td>
-                    <td>{r.customer_name}</td>
-                    <td>{r.customer_email}</td>
-                    <td>{r.customer_phone}</td>
-                    <td>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(r.id)}
-                      >
-                        Usuń
-                      </button>
-                    </td>
+                {timeSlots.map(timeSlot => (
+                  <tr key={timeSlot}>
+                    <td className="schedule-time-cell">{timeSlot}</td>
+                    {lanes.map(lane => {
+                      const reservation = getReservationForSlot(lane.id, timeSlot)
+                      const isFirst = isFirstSlotOfReservation(lane.id, timeSlot)
+
+                      if (reservation && !isFirst) return null
+
+                      if (reservation && isFirst) {
+                        const rowSpan = getReservationRowSpan(reservation)
+                        return (
+                          <td
+                            key={lane.id}
+                            rowSpan={rowSpan}
+                            className="schedule-booked-cell"
+                          >
+                            <div className="schedule-booking-info">
+                              <strong>{reservation.customer_name}</strong>
+                              <span>{reservation.start_time} - {reservation.end_time}</span>
+                              <span style={{fontSize: '11px', color: '#ffaaaa'}}>{reservation.customer_phone}</span>
+                              <button
+                                className="delete-btn"
+                                style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}}
+                                onClick={() => handleDelete(reservation.id)}
+                              >
+                                Usuń
+                              </button>
+                            </div>
+                          </td>
+                        )
+                      }
+
+                      return <td key={lane.id} className="schedule-empty-cell"></td>
+                    })}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* LIST VIEW */}
+        {view === 'list' && (
+          <>
+            {reservations.length === 0 ? (
+              <p style={{color: '#a0a0b0'}}>Brak rezerwacji na ten dzień</p>
+            ) : (
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Godzina</th>
+                      <th>Tor/Stół</th>
+                      <th>Imię</th>
+                      <th>Email</th>
+                      <th>Telefon</th>
+                      <th>Akcja</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservations.map(r => (
+                      <tr key={r.id}>
+                        <td>{r.start_time} - {r.end_time}</td>
+                        <td>{r.resources?.name}</td>
+                        <td>{r.customer_name}</td>
+                        <td>{r.customer_email}</td>
+                        <td>{r.customer_phone}</td>
+                        <td>
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDelete(r.id)}
+                          >
+                            Usuń
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </section>
     </main>
