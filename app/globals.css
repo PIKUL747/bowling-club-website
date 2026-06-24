@@ -5,69 +5,83 @@
 }
 
 body {
-  background-color: #0f0f1a;
+  background-color: #0a0a0f;
   color: white;
   font-family: Arial, sans-serif;
 }
 
-h1 {
-  font-size: 48px;
-  color: #e94560;
-}
-
-main {
-  text-align: center;
-  padding: 100px 20px;
-}.navbar {
+/* NAVBAR */
+.navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
-  background-color: #16213e;
+  padding: 10px 40px;
+  background-color: #0a0a0f;
+  border-bottom: 1px solid #1a1a2e;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.logo {
-  font-size: 24px;
-  font-weight: bold;
-  color: #e94560;
+.navbar-logo {
+  display: flex;
+  align-items: center;
 }
 
 .nav-links a {
-  color: white;
+  color: #a0a0b0;
   text-decoration: none;
   margin-left: 30px;
   font-size: 16px;
+  transition: color 0.2s;
 }
 
 .nav-links a:hover {
-  color: #e94560;
+  color: #0ea5e9;
+}
+
+/* HERO */
+h1 {
+  font-size: 48px;
+  color: white;
+}
+
+main {
+  min-height: 100vh;
 }
 
 .hero {
-  padding: 120px 20px;
+  padding: 80px 20px;
   text-align: center;
 }
 
 .hero p {
-  font-size: 20px;
+  font-size: 18px;
   color: #a0a0b0;
   margin-top: 16px;
 }
 
+/* BUTTONS */
 .btn {
   margin-top: 40px;
-  background-color: #e94560;
+  background-color: #e63946;
   color: white;
   border: none;
   padding: 16px 48px;
   font-size: 18px;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .btn:hover {
-  background-color: #c73652;
-}.info-grid {
+  background-color: #c1121f;
+}
+
+/* INFO CARDS */
+.info-grid {
   display: flex;
   justify-content: center;
   gap: 30px;
@@ -76,17 +90,23 @@ main {
 }
 
 .info-card {
-  background-color: #16213e;
+  background-color: #0f172a;
+  border: 1px solid #1e3a5f;
   padding: 40px 30px;
   border-radius: 12px;
   width: 280px;
   text-align: center;
+  transition: border-color 0.2s;
+}
+
+.info-card:hover {
+  border-color: #0ea5e9;
 }
 
 .info-card h2 {
-  font-size: 24px;
+  font-size: 22px;
   margin-bottom: 16px;
-  color: #e94560;
+  color: #0ea5e9;
 }
 
 .info-card p {
@@ -94,6 +114,8 @@ main {
   font-size: 16px;
   line-height: 1.6;
 }
+
+/* BOOKING FORM */
 .type-selector {
   display: flex;
   justify-content: center;
@@ -102,18 +124,23 @@ main {
 }
 
 .type-btn {
-  background-color: #16213e;
+  background-color: #0f172a;
   color: white;
-  border: 2px solid #16213e;
+  border: 2px solid #1e3a5f;
   padding: 12px 32px;
   font-size: 16px;
   border-radius: 8px;
   cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.type-btn:hover {
+  border-color: #0ea5e9;
 }
 
 .type-btn.active {
-  border-color: #e94560;
-  color: #e94560;
+  border-color: #0ea5e9;
+  color: #0ea5e9;
 }
 
 .booking-form {
@@ -129,11 +156,17 @@ main {
   width: 100%;
   max-width: 400px;
   padding: 14px 16px;
-  background-color: #16213e;
-  border: 1px solid #2a2a4a;
+  background-color: #0f172a;
+  border: 1px solid #1e3a5f;
   border-radius: 8px;
   color: white;
   font-size: 16px;
+}
+
+.booking-form input:focus,
+.booking-form select:focus {
+  outline: none;
+  border-color: #0ea5e9;
 }
 
 .time-row {
@@ -143,15 +176,34 @@ main {
   color: #a0a0b0;
 }
 
-.time-row input {
+.time-row select {
   width: 160px !important;
 }
 
 .booking-message {
   margin-top: 24px;
   font-size: 18px;
-  color: #00ff99;
+  color: #00c96e;
 }
+
+/* ADMIN */
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+.admin-filter-input {
+  background-color: #0f172a;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  color: white;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
 .admin-table-wrapper {
   overflow-x: auto;
   margin-top: 20px;
@@ -164,26 +216,26 @@ main {
 }
 
 .admin-table th {
-  background-color: #16213e;
-  color: #e94560;
+  background-color: #0f172a;
+  color: #0ea5e9;
   padding: 14px 16px;
   font-size: 14px;
 }
 
 .admin-table td {
   padding: 12px 16px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #1e3a5f;
   color: #a0a0b0;
   font-size: 14px;
 }
 
 .admin-table tr:hover td {
-  background-color: #16213e;
+  background-color: #0f172a;
   color: white;
 }
 
 .delete-btn {
-  background-color: #e94560;
+  background-color: #e63946;
   color: white;
   border: none;
   padding: 6px 16px;
@@ -193,35 +245,10 @@ main {
 }
 
 .delete-btn:hover {
-  background-color: #c73652;
-}
-.admin-link {
-  color: #e94560 !important;
-  border: 1px solid #e94560;
-  padding: 6px 14px;
-  border-radius: 6px;
+  background-color: #c1121f;
 }
 
-.admin-link:hover {
-  background-color: #e94560;
-  color: white !important;
-}
-.admin-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
-  justify-content: center;
-}
-
-.admin-filter-input {
-  background-color: #16213e;
-  border: 1px solid #2a2a4a;
-  border-radius: 8px;
-  color: white;
-  padding: 10px 16px;
-  font-size: 14px;
-}
+/* SCHEDULE GRID */
 .schedule-wrapper {
   overflow-x: auto;
   margin-top: 10px;
@@ -235,7 +262,7 @@ main {
 }
 
 .schedule-time-header {
-  background-color: #0f0f1a;
+  background-color: #0a0a0f;
   color: #a0a0b0;
   padding: 12px 16px;
   font-size: 13px;
@@ -243,35 +270,43 @@ main {
 }
 
 .schedule-lane-header {
-  background-color: #16213e;
-  color: #e94560;
+  background-color: #0f172a;
+  color: #0ea5e9;
   padding: 12px 16px;
   font-size: 14px;
   font-weight: bold;
-  border-left: 1px solid #2a2a4a;
+  border-left: 1px solid #1e3a5f;
 }
 
 .schedule-time-cell {
-  background-color: #0f0f1a;
+  background-color: #0a0a0f;
   color: #a0a0b0;
   padding: 10px 16px;
   font-size: 13px;
-  border-top: 1px solid #2a2a4a;
+  border-top: 1px solid #1e3a5f;
   font-weight: bold;
 }
 
 .schedule-empty-cell {
-  border: 1px solid #2a2a4a;
-  background-color: #0f0f1a;
+  border: 1px solid #1e3a5f;
+  background-color: #0a0a0f;
   min-width: 120px;
 }
 
 .schedule-booked-cell {
-  background-color: #1a3a2a;
-  border: 2px solid #00c96e;
+  background-color: #0f172a;
+  border: 2px solid #0ea5e9;
   border-radius: 6px;
   padding: 8px;
   vertical-align: top;
+}
+
+.schedule-booked-cell-public {
+  background-color: #1a0a0f;
+  border: 1px solid #e63946;
+  color: #e63946;
+  text-align: center;
+  font-size: 14px;
 }
 
 .schedule-booking-info {
@@ -280,11 +315,4 @@ main {
   gap: 4px;
   font-size: 13px;
   color: white;
-}
-.schedule-booked-cell-public {
-  background-color: #1a3a2a;
-  border: 1px solid #00c96e;
-  color: #00c96e;
-  text-align: center;
-  font-size: 14px;
 }
