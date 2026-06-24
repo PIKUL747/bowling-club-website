@@ -16,7 +16,7 @@ export default function About() {
           </div>
           <div className="info-card">
             <h2>🕐 Godziny otwarcia</h2>
-            <p>Czynne w tygodniu od 15:00 do 00:00.</p>
+            <p>W tygodniu od 15:00 do 00:00.</p>
             <p>W weekendy od 13:00 do 00:00.</p>
           </div>
         </div>
