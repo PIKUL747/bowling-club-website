@@ -206,3 +206,19 @@ main {
   background-color: #e94560;
   color: white !important;
 }
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+.admin-filter-input {
+  background-color: #16213e;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  color: white;
+  padding: 10px 16px;
+  font-size: 14px;
+}
