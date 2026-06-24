@@ -28,6 +28,18 @@ export default function Admin() {
     }).format(now)
   }
 
+  function normalizeTime(time) {
+    if (!time) return ''
+    return time.substring(0, 5)
+  }
+
+  function timeToMinutes(time) {
+    const t = normalizeTime(time)
+    if (t === '00:00') return 24 * 60
+    const [h, m] = t.split(':').map(Number)
+    return h * 60 + m
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -100,19 +112,23 @@ export default function Admin() {
   function getReservationForSlot(laneId, timeSlot) {
     return reservations.find(r => {
       if (r.resource_id !== laneId) return false
-      return timeSlot >= r.start_time && timeSlot < r.end_time
+      const slotMinutes = timeToMinutes(timeSlot)
+      const startMinutes = timeToMinutes(r.start_time)
+      const endMinutes = timeToMinutes(r.end_time)
+      return slotMinutes >= startMinutes && slotMinutes < endMinutes
     })
   }
 
   function isFirstSlotOfReservation(laneId, timeSlot) {
     const r = getReservationForSlot(laneId, timeSlot)
     if (!r) return false
-    return r.start_time === timeSlot
+    return normalizeTime(r.start_time) === timeSlot
   }
 
   function getReservationRowSpan(reservation) {
-    const start = timeSlots.indexOf(reservation.start_time)
-    let end = reservation.end_time === '00:00' ? timeSlots.length : timeSlots.indexOf(reservation.end_time)
+    const start = timeSlots.indexOf(normalizeTime(reservation.start_time))
+    const endTime = normalizeTime(reservation.end_time)
+    let end = endTime === '00:00' ? timeSlots.length : timeSlots.indexOf(endTime)
     if (end === -1) end = timeSlots.length
     return end - start
   }
@@ -221,7 +237,7 @@ export default function Admin() {
                           >
                             <div className="schedule-booking-info">
                               <strong>{reservation.customer_name}</strong>
-                              <span>{reservation.start_time} - {reservation.end_time}</span>
+                              <span>{normalizeTime(reservation.start_time)} - {normalizeTime(reservation.end_time)}</span>
                               <span style={{fontSize: '11px', color: '#ffaaaa'}}>{reservation.customer_phone}</span>
                               <button
                                 className="delete-btn"
@@ -265,7 +281,7 @@ export default function Admin() {
                   <tbody>
                     {reservations.map(r => (
                       <tr key={r.id}>
-                        <td>{r.start_time} - {r.end_time}</td>
+                        <td>{normalizeTime(r.start_time)} - {normalizeTime(r.end_time)}</td>
                         <td>{r.resources?.name}</td>
                         <td>{r.customer_name}</td>
                         <td>{r.customer_email}</td>
