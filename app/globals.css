@@ -281,3 +281,10 @@ main {
   font-size: 13px;
   color: white;
 }
+.schedule-booked-cell-public {
+  background-color: #1a3a2a;
+  border: 1px solid #00c96e;
+  color: #00c96e;
+  text-align: center;
+  font-size: 14px;
+}
