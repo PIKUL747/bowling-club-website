@@ -316,3 +316,73 @@ main {
   font-size: 13px;
   color: white;
 }
+/* SCHEDULE GRID */
+.schedule-wrapper {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  min-width: 700px;
+}
+
+.schedule-time-header {
+  background-color: #0a0a0f;
+  color: #a0a0b0;
+  padding: 12px 16px;
+  font-size: 13px;
+  width: 80px;
+  border: 1px solid #1e3a5f;
+}
+
+.schedule-lane-header {
+  background-color: #0f172a;
+  color: #0ea5e9;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1px solid #1e3a5f;
+  min-width: 120px;
+}
+
+.schedule-time-cell {
+  background-color: #0a0a0f;
+  color: #a0a0b0;
+  padding: 10px 16px;
+  font-size: 13px;
+  border: 1px solid #1e3a5f;
+  font-weight: bold;
+}
+
+.schedule-empty-cell {
+  border: 1px solid #1e3a5f;
+  background-color: #0a0a0f;
+  min-width: 120px;
+  height: 48px;
+}
+
+.schedule-booked-cell {
+  background-color: #0f172a;
+  border: 2px solid #0ea5e9;
+  padding: 8px;
+  vertical-align: top;
+}
+
+.schedule-booked-cell-public {
+  background-color: #1a0a0f;
+  border: 1px solid #e63946;
+  color: #e63946;
+  text-align: center;
+  font-size: 14px;
+}
+
+.schedule-booking-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: white;
+}
