@@ -301,7 +301,7 @@ export default function Reservations() {
                 <span style={{color: '#a0a0b0', fontSize: '13px'}}>Wolny</span>
               </div>
             </div>
-
+<h2 style={{color: '#0ea5e9', marginBottom: '16px', fontSize: '24px'}}>Kręgle</h2>
             <div className="schedule-wrapper">
               <table className="schedule-table">
                 <thead>
