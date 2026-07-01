@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -256,7 +255,6 @@ export default function Reservations() {
         <h1>Rezerwacje</h1>
         <p>Zarezerwuj tor bowlingowy lub stół bilardowy</p>
 
-        {/* View toggle */}
         <div style={{display: 'flex', gap: '8px', justifyContent: 'center', margin: '30px 0 20px'}}>
           <button
             className={view === 'grid' ? 'type-btn active' : 'type-btn'}
@@ -272,7 +270,6 @@ export default function Reservations() {
           </button>
         </div>
 
-        {/* PUBLIC AVAILABILITY GRID */}
         {view === 'grid' && (
           <div>
             <div style={{display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap'}}>
@@ -293,15 +290,17 @@ export default function Reservations() {
 
             <div style={{display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '16px'}}>
               <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                <div style={{width: '20px', height: '20px', backgroundColor: '#1a3a2a', border: '2px solid #00c96e', borderRadius: '4px'}}></div>
+                <div style={{width: '20px', height: '20px', backgroundColor: '#1a0a0f', border: '2px solid #e63946', borderRadius: '4px'}}></div>
                 <span style={{color: '#a0a0b0', fontSize: '13px'}}>Zajęty</span>
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                <div style={{width: '20px', height: '20px', backgroundColor: '#0f0f1a', border: '1px solid #2a2a4a', borderRadius: '4px'}}></div>
+                <div style={{width: '20px', height: '20px', backgroundColor: '#0a0a0f', border: '1px solid #1e3a5f', borderRadius: '4px'}}></div>
                 <span style={{color: '#a0a0b0', fontSize: '13px'}}>Wolny</span>
               </div>
             </div>
-<h2 style={{color: '#0ea5e9', marginBottom: '16px', fontSize: '24px'}}>Kręgle</h2>
+
+            <h2 style={{color: '#0ea5e9', marginBottom: '16px', fontSize: '24px'}}>🎳 Kręgle</h2>
+
             <div className="schedule-wrapper">
               <table className="schedule-table">
                 <thead>
@@ -341,7 +340,6 @@ export default function Reservations() {
           </div>
         )}
 
-        {/* BOOKING FORM */}
         {view === 'form' && (
           <>
             <div className="type-selector">
