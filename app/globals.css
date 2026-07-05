@@ -386,3 +386,24 @@ main {
   font-size: 13px;
   color: white;
 }
+.special-notice {
+  max-width: 700px;
+  margin: 60px auto 0;
+  background-color: #0f172a;
+  border: 1px solid #1e3a5f;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+}
+
+.special-notice h2 {
+  color: #0ea5e9;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.special-notice p {
+  color: #a0a0b0;
+  font-size: 16px;
+  line-height: 1.7;
+}
