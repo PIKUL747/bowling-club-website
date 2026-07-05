@@ -1,6 +1,11 @@
+'use client'
+
 import Image from 'next/image'
+import { useState } from 'react'
 
 export default function Navbar() {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <nav className="navbar">
       <a href="/" className="navbar-logo">
@@ -12,11 +17,21 @@ export default function Navbar() {
           style={{objectFit: 'contain'}}
         />
       </a>
-      <div className="nav-links">
-        <a href="/">Strona główna</a>
-        <a href="/about">O nas</a>
-        <a href="/reservations">Rezerwacje</a>
-        <a href="/contact">Kontakt</a>
+
+      {/* Hamburger button - only on mobile */}
+      <button
+        className="hamburger"
+        onClick={() => setMenuOpen(!menuOpen)}
+      >
+        {menuOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Navigation links */}
+      <div className={menuOpen ? 'nav-links open' : 'nav-links'}>
+        <a href="/" onClick={() => setMenuOpen(false)}>Strona główna</a>
+        <a href="/about" onClick={() => setMenuOpen(false)}>O nas</a>
+        <a href="/reservations" onClick={() => setMenuOpen(false)}>Rezerwacje</a>
+        <a href="/contact" onClick={() => setMenuOpen(false)}>Kontakt</a>
       </div>
     </nav>
   )
