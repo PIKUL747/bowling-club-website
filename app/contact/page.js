@@ -19,8 +19,8 @@ export default function Contact() {
                 537 523 207
               </a>
             </p>
-            <p style={{marginTop: '8px', fontSize: '13px', color: '#606070'}}>Pon-Czw: 15:00 - 00:00</p>
-            <p style={{fontSize: '13px', color: '#606070'}}>Pt-Nd: 13:00 - 00:00</p>
+            <p style={{marginTop: '8px', fontSize: '13px', color: '#606070'}}>Pon-Pt: 15:00 - 00:00</p>
+            <p style={{fontSize: '13px', color: '#606070'}}>Sob-Nd: 13:00 - 00:00</p>
           </div>
           <div className="info-card">
             <h2>📧 Email</h2>
@@ -32,11 +32,10 @@ export default function Contact() {
           </div>
         </div>
 
-        {/* Special reservations notice */}
         <div className="special-notice">
           <h2>🎉 Większe rezerwacje i imprezy okolicznościowe</h2>
           <p>
-            Rezerwacje grupowe, imprezy okolicznościowe, spotkania firmowe oraz wszelkie
+            Rezerwacje grupowe, imprezy okolicznościowe, imprezy firmowe oraz wszelkie
             specjalne życzenia (np. kilka torów na kilka godzin) wymagają wcześniejszego
             uzgodnienia z personelem lub managerem klubu.
           </p>

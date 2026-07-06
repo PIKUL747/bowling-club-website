@@ -34,6 +34,11 @@ body {
   align-items: center;
 }
 
+.navbar-logo img {
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -279,6 +284,12 @@ main {
   border-bottom: 1px solid #1e3a5f;
   color: #a0a0b0;
   font-size: 14px;
+  background-color: #0f172a;
+}
+
+.admin-table tr:hover td {
+  background-color: #162032;
+  color: white;
 }
 
 .admin-table tr:hover td {

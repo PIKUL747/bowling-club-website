@@ -37,6 +37,17 @@ export default function Reservations() {
     }).format(now)
   }
 
+  function getMaxDate() {
+    const now = new Date()
+    now.setMonth(now.getMonth() + 2)
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Warsaw',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now)
+  }
+
   function normalizeTime(time) {
     if (!time) return ''
     return time.substring(0, 5)
@@ -211,6 +222,11 @@ export default function Reservations() {
       return
     }
 
+    if (formData.date > getMaxDate()) {
+      setMessage('Rezerwacje można składać maksymalnie 2 miesiące do przodu.')
+      return
+    }
+
     const { data: conflicts } = await supabase
       .from('reservations')
       .select('*')
@@ -278,6 +294,7 @@ export default function Reservations() {
                 value={gridDate}
                 onChange={e => setGridDate(e.target.value)}
                 min={getTodayPoland()}
+                max={getMaxDate()}
                 className="admin-filter-input"
               />
               <button
@@ -401,6 +418,7 @@ export default function Reservations() {
                 value={formData.date}
                 onChange={handleChange}
                 min={getTodayPoland()}
+                max={getMaxDate()}
               />
 
               <div className="time-row">

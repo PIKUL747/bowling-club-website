@@ -16,8 +16,8 @@ export default function About() {
           </div>
           <div className="info-card">
             <h2>🕐 Godziny otwarcia</h2>
-            <p>Poniedziałek - Czwartek: 15:00 - 00:00</p>
-            <p>Piątek - Niedziela: 13:00 - 00:00</p>
+            <p>Poniedziałek - Piątek: 15:00 - 00:00</p>
+            <p>Sobota - Niedziela: 13:00 - 00:00</p>
           </div>
           <div className="info-card">
             <h2>🎰 Atrakcje</h2>
@@ -25,11 +25,13 @@ export default function About() {
           </div>
           <div className="info-card">
             <h2>🎉 Imprezy</h2>
-            <p>Organizujemy imprezy okolicznościowe i spotkania firmowe. Skontaktuj się z nami!</p>
+            <p>Organizujemy imprezy okolicznościowe i imprezy firmowe. Skontaktuj się z nami!</p>
           </div>
           <div className="info-card">
             <h2>📍 Lokalizacja</h2>
-            <p>Znajdujemy się u stóp Góry św. Marcina przy Al. Tarnowskich 61, Tarnów.</p>
+            <p>Al. Tarnowskich 61</p>
+            <p>33-100 Tarnów</p>
+            <p style={{marginTop: '8px', fontSize: '13px', color: '#606070'}}>U stóp Góry św. Marcina</p>
           </div>
         </div>
       </section>
