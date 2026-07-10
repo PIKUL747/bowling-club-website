@@ -8,16 +8,36 @@ export default function Admin() {
   const [password, setPassword] = useState('')
   const [session, setSession] = useState(null)
   const [reservations, setReservations] = useState([])
+  const [resources, setResources] = useState([])
   const [message, setMessage] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [lanes, setLanes] = useState([])
   const [view, setView] = useState('grid')
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addMessage, setAddMessage] = useState('')
+  const [newReservation, setNewReservation] = useState({
+    resource_id: '',
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    date: '',
+    start_time: '',
+    end_time: '',
+    opis: '',
+  })
 
   const timeSlots = [
     '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
     '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
     '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
     '22:00', '22:30', '23:00', '23:30'
+  ]
+
+  const allTimeOptions = [
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+    '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
+    '22:00', '22:30', '23:00', '23:30', '00:00'
   ]
 
   function getTodayPoland() {
@@ -49,6 +69,7 @@ export default function Admin() {
         const today = getTodayPoland()
         setSelectedDate(today)
         loadLanes()
+        loadAllResources()
       }
     })
   }, [])
@@ -66,6 +87,14 @@ export default function Admin() {
       .eq('type', 'bowling')
       .order('id')
     setLanes(data || [])
+  }
+
+  async function loadAllResources() {
+    const { data } = await supabase
+      .from('resources')
+      .select('*')
+      .order('type')
+    setResources(data || [])
   }
 
   async function loadReservations(date) {
@@ -89,6 +118,7 @@ export default function Admin() {
       const today = getTodayPoland()
       setSelectedDate(today)
       loadLanes()
+      loadAllResources()
     }
   }
 
@@ -109,6 +139,64 @@ export default function Admin() {
     if (!error) {
       loadReservations(selectedDate)
     }
+  }
+
+  async function handleAddReservation(e) {
+    e.preventDefault()
+    setAddMessage('')
+
+    if (!newReservation.resource_id) { setAddMessage('Wybierz tor lub stół.'); return }
+    if (!newReservation.customer_name) { setAddMessage('Podaj imię klienta.'); return }
+    if (!newReservation.date) { setAddMessage('Wybierz datę.'); return }
+    if (!newReservation.start_time) { setAddMessage('Wybierz godzinę rozpoczęcia.'); return }
+    if (!newReservation.end_time) { setAddMessage('Wybierz godzinę zakończenia.'); return }
+
+    const { data: conflicts } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('resource_id', newReservation.resource_id)
+      .eq('date', newReservation.date)
+      .lt('start_time', newReservation.end_time)
+      .gt('end_time', newReservation.start_time)
+
+    if (conflicts && conflicts.length > 0) {
+      setAddMessage('Ten tor jest już zajęty w tym czasie!')
+      return
+    }
+
+    const { error } = await supabase
+      .from('reservations')
+      .insert([{
+        resource_id: newReservation.resource_id,
+        customer_name: newReservation.customer_name,
+        customer_phone: newReservation.customer_phone,
+        customer_email: newReservation.customer_email,
+        date: newReservation.date,
+        start_time: newReservation.start_time,
+        end_time: newReservation.end_time,
+        opis: newReservation.opis,
+      }])
+
+    if (error) {
+      setAddMessage('Błąd: ' + error.message)
+    } else {
+      setAddMessage('✓ Rezerwacja dodana pomyślnie!')
+      setNewReservation({
+        resource_id: '',
+        customer_name: '',
+        customer_phone: '',
+        customer_email: '',
+        date: '',
+        start_time: '',
+        end_time: '',
+        opis: '',
+      })
+      loadReservations(selectedDate)
+    }
+  }
+
+  function handleNewChange(e) {
+    setNewReservation({ ...newReservation, [e.target.name]: e.target.value })
   }
 
   function getReservationForSlot(laneId, timeSlot) {
@@ -171,6 +259,124 @@ export default function Admin() {
           <h1>Panel admina</h1>
           <button className="btn" onClick={handleLogout}>Wyloguj</button>
         </div>
+
+        {/* Add reservation button */}
+        <div style={{marginBottom: '24px'}}>
+          <button
+            className={showAddForm ? 'btn' : 'type-btn'}
+            style={{borderColor: showAddForm ? '' : '#00c96e', color: showAddForm ? '' : '#00c96e'}}
+            onClick={() => { setShowAddForm(!showAddForm); setAddMessage('') }}
+          >
+            {showAddForm ? '✕ Zamknij formularz' : '+ Dodaj rezerwację'}
+          </button>
+        </div>
+
+        {/* Manual add form */}
+        {showAddForm && (
+          <div style={{backgroundColor: '#0f172a', border: '1px solid #1e3a5f', borderRadius: '12px', padding: '30px', marginBottom: '30px', maxWidth: '600px', margin: '0 auto 30px'}}>
+            <h2 style={{color: '#0ea5e9', marginBottom: '20px', fontSize: '20px'}}>Nowa rezerwacja</h2>
+            <form className="booking-form" onSubmit={handleAddReservation}>
+
+              <select
+                name="resource_id"
+                value={newReservation.resource_id}
+                onChange={handleNewChange}
+              >
+                <option value="">Wybierz tor lub stół</option>
+                {resources.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({r.type === 'bowling' ? 'Kręgle' : 'Bilard'})
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="text"
+                name="customer_name"
+                placeholder="Imię i nazwisko klienta"
+                value={newReservation.customer_name}
+                onChange={handleNewChange}
+                maxLength={30}
+              />
+
+              <input
+                type="tel"
+                name="customer_phone"
+                placeholder="Telefon klienta"
+                value={newReservation.customer_phone}
+                onChange={handleNewChange}
+                maxLength={25}
+              />
+
+              <input
+                type="email"
+                name="customer_email"
+                placeholder="Email klienta (opcjonalnie)"
+                value={newReservation.customer_email}
+                onChange={handleNewChange}
+              />
+
+              <input
+                type="date"
+                name="date"
+                value={newReservation.date}
+                onChange={handleNewChange}
+              />
+
+              <div className="time-row">
+                <select
+                  name="start_time"
+                  value={newReservation.start_time}
+                  onChange={handleNewChange}
+                >
+                  <option value="">Godzina start</option>
+                  {allTimeOptions.slice(0, -1).map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+                <span>do</span>
+                <select
+                  name="end_time"
+                  value={newReservation.end_time}
+                  onChange={handleNewChange}
+                >
+                  <option value="">Godzina koniec</option>
+                  {allTimeOptions.slice(1).map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+
+              <textarea
+                name="opis"
+                placeholder="Opis / uwagi (opcjonalnie) — np. impreza firmowa, specjalne życzenia"
+                value={newReservation.opis}
+                onChange={handleNewChange}
+                rows={3}
+                style={{
+                  width: '100%',
+                  maxWidth: '400px',
+                  padding: '14px 16px',
+                  backgroundColor: '#0a0a0f',
+                  border: '1px solid #1e3a5f',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '16px',
+                  resize: 'vertical',
+                }}
+              />
+
+              <button type="submit" className="btn" style={{backgroundColor: '#00c96e'}}>
+                Dodaj rezerwację
+              </button>
+            </form>
+            {addMessage && (
+              <p style={{marginTop: '16px', color: addMessage.startsWith('✓') ? '#00c96e' : '#e63946', fontSize: '16px'}}>
+                {addMessage}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Date picker and view toggle */}
         <div style={{display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap'}}>
@@ -241,6 +447,9 @@ export default function Admin() {
                               <strong>{reservation.customer_name}</strong>
                               <span>{normalizeTime(reservation.start_time)} - {normalizeTime(reservation.end_time)}</span>
                               <span style={{fontSize: '11px', color: '#ffaaaa'}}>{reservation.customer_phone}</span>
+                              {reservation.opis && (
+                                <span style={{fontSize: '11px', color: '#a0a0b0', fontStyle: 'italic'}}>{reservation.opis}</span>
+                              )}
                               <button
                                 className="delete-btn"
                                 style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}}
@@ -275,8 +484,8 @@ export default function Admin() {
                       <th>Godzina</th>
                       <th>Tor/Stół</th>
                       <th>Imię</th>
-                      <th>Email</th>
                       <th>Telefon</th>
+                      <th>Opis</th>
                       <th>Akcja</th>
                     </tr>
                   </thead>
@@ -286,8 +495,8 @@ export default function Admin() {
                         <td>{normalizeTime(r.start_time)} - {normalizeTime(r.end_time)}</td>
                         <td>{r.resources?.name}</td>
                         <td>{r.customer_name}</td>
-                        <td>{r.customer_email}</td>
                         <td>{r.customer_phone}</td>
+                        <td>{r.opis || '-'}</td>
                         <td>
                           <button
                             className="delete-btn"
