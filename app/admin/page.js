@@ -14,8 +14,10 @@ export default function Admin() {
   const [view, setView] = useState('grid')
 
   const timeSlots = [
-    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
-    '19:00', '20:00', '21:00', '22:00', '23:00'
+    '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+    '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
+    '22:00', '22:30', '23:00', '23:30'
   ]
 
   function getTodayPoland() {
@@ -156,7 +158,7 @@ export default function Admin() {
             />
             <button type="submit" className="btn">Zaloguj się</button>
           </form>
-          {message && <p className="booking-message" style={{color: '#e94560'}}>{message}</p>}
+          {message && <p className="booking-message" style={{color: '#e63946'}}>{message}</p>}
         </section>
       </main>
     )
@@ -180,7 +182,7 @@ export default function Admin() {
           />
           <button
             className="type-btn"
-            style={{borderColor: selectedDate === getTodayPoland() ? '#e94560' : ''}}
+            style={{borderColor: selectedDate === getTodayPoland() ? '#0ea5e9' : ''}}
             onClick={() => setSelectedDate(getTodayPoland())}
           >
             Dzisiaj
