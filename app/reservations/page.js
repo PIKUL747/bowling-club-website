@@ -5,6 +5,7 @@ import { supabase } from '../supabase'
 
 export default function Reservations() {
   const [allReservations, setAllReservations] = useState([])
+  const [allClosures, setAllClosures] = useState([])
   const [lanes, setLanes] = useState([])
   const [gridDate, setGridDate] = useState('')
 
@@ -51,7 +52,10 @@ export default function Reservations() {
   }, [])
 
   useEffect(() => {
-    if (gridDate) loadGridReservations(gridDate)
+    if (gridDate) {
+      loadGridReservations(gridDate)
+      loadGridClosures(gridDate)
+    }
   }, [gridDate])
 
   async function loadLanes() {
@@ -71,14 +75,28 @@ export default function Reservations() {
     setAllReservations(data || [])
   }
 
-  function isSlotBooked(laneId, timeSlot) {
-    return allReservations.some(r => {
+  async function loadGridClosures(date) {
+    const { data } = await supabase
+      .from('closures')
+      .select('resource_id, start_time, end_time')
+      .eq('date', date)
+    setAllClosures(data || [])
+  }
+
+  function isSlotUnavailable(laneId, timeSlot) {
+    const slotMinutes = timeToMinutes(timeSlot)
+
+    const bookedByReservation = allReservations.some(r => {
       if (r.resource_id !== laneId) return false
-      const slotMinutes = timeToMinutes(timeSlot)
-      const startMinutes = timeToMinutes(r.start_time)
-      const endMinutes = timeToMinutes(r.end_time)
-      return slotMinutes >= startMinutes && slotMinutes < endMinutes
+      return slotMinutes >= timeToMinutes(r.start_time) && slotMinutes < timeToMinutes(r.end_time)
     })
+
+    const bookedByClosure = allClosures.some(c => {
+      if (c.resource_id !== laneId) return false
+      return slotMinutes >= timeToMinutes(c.start_time) && slotMinutes < timeToMinutes(c.end_time)
+    })
+
+    return bookedByReservation || bookedByClosure
   }
 
   return (
@@ -87,7 +105,7 @@ export default function Reservations() {
         <h1>Dostępność torów</h1>
         <p>Sprawdź wolne terminy i zadzwoń do nas aby zarezerwować!</p>
 
-        <div style={{margin: '24px 0', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto'}}>
+        <div style={{margin: '24px auto', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px'}}>
           <p style={{fontSize: '18px', color: 'white', marginBottom: '8px'}}>📞 Rezerwacje tylko telefonicznie:</p>
           <a href="tel:537523207" style={{fontSize: '28px', fontWeight: 'bold', color: '#0ea5e9', textDecoration: 'none'}}>
             537 523 207
@@ -104,10 +122,7 @@ export default function Reservations() {
             max={getMaxDate()}
             className="admin-filter-input"
           />
-          <button
-            className="type-btn"
-            onClick={() => setGridDate(getTodayPoland())}
-          >
+          <button className="type-btn" onClick={() => setGridDate(getTodayPoland())}>
             Dzisiaj
           </button>
         </div>
@@ -140,13 +155,13 @@ export default function Reservations() {
                 <tr key={timeSlot}>
                   <td className="schedule-time-cell">{timeSlot}</td>
                   {lanes.map(lane => {
-                    const booked = isSlotBooked(lane.id, timeSlot)
+                    const unavailable = isSlotUnavailable(lane.id, timeSlot)
                     return (
                       <td
                         key={lane.id}
-                        className={booked ? 'schedule-booked-cell-public' : 'schedule-empty-cell'}
+                        className={unavailable ? 'schedule-booked-cell-public' : 'schedule-empty-cell'}
                       >
-                        {booked ? '✕' : ''}
+                        {unavailable ? '✕' : ''}
                       </td>
                     )
                   })}
@@ -156,7 +171,7 @@ export default function Reservations() {
           </table>
         </div>
 
-        <div style={{marginTop: '30px', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto'}}>
+        <div style={{marginTop: '30px', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px', margin: '30px auto 0'}}>
           <p style={{color: '#a0a0b0', fontSize: '14px'}}>
             Aby zarezerwować tor, zadzwoń pod numer <a href="tel:537523207" style={{color: '#0ea5e9'}}>537 523 207</a> a nasza obsługa wprowadzi rezerwację do systemu.
           </p>
