@@ -9,12 +9,15 @@ export default function Admin() {
   const [session, setSession] = useState(null)
   const [reservations, setReservations] = useState([])
   const [resources, setResources] = useState([])
+  const [closures, setClosures] = useState([])
   const [message, setMessage] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [lanes, setLanes] = useState([])
   const [view, setView] = useState('grid')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showClosureForm, setShowClosureForm] = useState(false)
   const [addMessage, setAddMessage] = useState('')
+  const [closureMessage, setClosureMessage] = useState('')
   const [newReservation, setNewReservation] = useState({
     resource_id: '',
     customer_name: '',
@@ -24,6 +27,13 @@ export default function Admin() {
     start_time: '',
     end_time: '',
     opis: '',
+  })
+  const [newClosure, setNewClosure] = useState({
+    resource_id: '',
+    date: '',
+    start_time: '',
+    end_time: '',
+    reason: '',
   })
 
   const timeSlots = [
@@ -77,6 +87,7 @@ export default function Admin() {
   useEffect(() => {
     if (session && selectedDate) {
       loadReservations(selectedDate)
+      loadClosures(selectedDate)
     }
   }, [session, selectedDate])
 
@@ -104,6 +115,15 @@ export default function Admin() {
       .eq('date', date)
       .order('start_time')
     setReservations(data || [])
+  }
+
+  async function loadClosures(date) {
+    const { data } = await supabase
+      .from('closures')
+      .select('*, resources(name, type)')
+      .eq('date', date)
+      .order('start_time')
+    setClosures(data || [])
   }
 
   async function handleLogin(e) {
@@ -136,15 +156,22 @@ export default function Admin() {
       .from('reservations')
       .delete()
       .eq('id', id)
-    if (!error) {
-      loadReservations(selectedDate)
-    }
+    if (!error) loadReservations(selectedDate)
+  }
+
+  async function handleDeleteClosure(id) {
+    const confirmed = window.confirm('Czy na pewno chcesz usunąć to wyłączenie?')
+    if (!confirmed) return
+    const { error } = await supabase
+      .from('closures')
+      .delete()
+      .eq('id', id)
+    if (!error) loadClosures(selectedDate)
   }
 
   async function handleAddReservation(e) {
     e.preventDefault()
     setAddMessage('')
-
     if (!newReservation.resource_id) { setAddMessage('Wybierz tor lub stół.'); return }
     if (!newReservation.customer_name) { setAddMessage('Podaj imię klienta.'); return }
     if (!newReservation.date) { setAddMessage('Wybierz datę.'); return }
@@ -195,29 +222,72 @@ export default function Admin() {
     }
   }
 
+  async function handleAddClosure(e) {
+    e.preventDefault()
+    setClosureMessage('')
+    if (!newClosure.resource_id) { setClosureMessage('Wybierz tor lub stół.'); return }
+    if (!newClosure.date) { setClosureMessage('Wybierz datę.'); return }
+    if (!newClosure.start_time) { setClosureMessage('Wybierz godzinę rozpoczęcia.'); return }
+    if (!newClosure.end_time) { setClosureMessage('Wybierz godzinę zakończenia.'); return }
+
+    const { error } = await supabase
+      .from('closures')
+      .insert([newClosure])
+
+    if (error) {
+      setClosureMessage('Błąd: ' + error.message)
+    } else {
+      setClosureMessage('✓ Wyłączenie dodane!')
+      setNewClosure({
+        resource_id: '',
+        date: '',
+        start_time: '',
+        end_time: '',
+        reason: '',
+      })
+      loadClosures(selectedDate)
+    }
+  }
+
   function handleNewChange(e) {
     setNewReservation({ ...newReservation, [e.target.name]: e.target.value })
   }
 
+  function handleClosureChange(e) {
+    setNewClosure({ ...newClosure, [e.target.name]: e.target.value })
+  }
+
   function getReservationForSlot(laneId, timeSlot) {
-    return reservations.find(r => {
+    const reservation = reservations.find(r => {
       if (r.resource_id !== laneId) return false
       const slotMinutes = timeToMinutes(timeSlot)
       const startMinutes = timeToMinutes(r.start_time)
       const endMinutes = timeToMinutes(r.end_time)
       return slotMinutes >= startMinutes && slotMinutes < endMinutes
     })
+    if (reservation) return { ...reservation, isClosure: false }
+
+    const closure = closures.find(c => {
+      if (c.resource_id !== laneId) return false
+      const slotMinutes = timeToMinutes(timeSlot)
+      const startMinutes = timeToMinutes(c.start_time)
+      const endMinutes = timeToMinutes(c.end_time)
+      return slotMinutes >= startMinutes && slotMinutes < endMinutes
+    })
+    if (closure) return { ...closure, isClosure: true }
+
+    return null
   }
 
-  function isFirstSlotOfReservation(laneId, timeSlot) {
-    const r = getReservationForSlot(laneId, timeSlot)
-    if (!r) return false
-    return normalizeTime(r.start_time) === timeSlot
+  function isFirstSlotOfEntry(laneId, timeSlot) {
+    const entry = getReservationForSlot(laneId, timeSlot)
+    if (!entry) return false
+    return normalizeTime(entry.start_time) === timeSlot
   }
 
-  function getReservationRowSpan(reservation) {
-    const start = timeSlots.indexOf(normalizeTime(reservation.start_time))
-    const endTime = normalizeTime(reservation.end_time)
+  function getEntryRowSpan(entry) {
+    const start = timeSlots.indexOf(normalizeTime(entry.start_time))
+    const endTime = normalizeTime(entry.end_time)
     let end = endTime === '00:00' ? timeSlots.length : timeSlots.indexOf(endTime)
     if (end === -1) end = timeSlots.length
     return end - start
@@ -260,28 +330,30 @@ export default function Admin() {
           <button className="btn" onClick={handleLogout}>Wyloguj</button>
         </div>
 
-        {/* Add reservation button */}
-        <div style={{marginBottom: '24px'}}>
+        {/* Action buttons */}
+        <div style={{display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '24px', flexWrap: 'wrap'}}>
           <button
-            className={showAddForm ? 'btn' : 'type-btn'}
-            style={{borderColor: showAddForm ? '' : '#00c96e', color: showAddForm ? '' : '#00c96e'}}
-            onClick={() => { setShowAddForm(!showAddForm); setAddMessage('') }}
+            className="type-btn"
+            style={{borderColor: '#00c96e', color: showAddForm ? 'white' : '#00c96e', backgroundColor: showAddForm ? '#00c96e' : ''}}
+            onClick={() => { setShowAddForm(!showAddForm); setShowClosureForm(false) }}
           >
-            {showAddForm ? '✕ Zamknij formularz' : '+ Dodaj rezerwację'}
+            + Dodaj rezerwację
+          </button>
+          <button
+            className="type-btn"
+            style={{borderColor: '#e63946', color: showClosureForm ? 'white' : '#e63946', backgroundColor: showClosureForm ? '#e63946' : ''}}
+            onClick={() => { setShowClosureForm(!showClosureForm); setShowAddForm(false) }}
+          >
+            🔒 Wyłącz tor / stół
           </button>
         </div>
 
-        {/* Manual add form */}
+        {/* Manual add reservation form */}
         {showAddForm && (
           <div style={{backgroundColor: '#0f172a', border: '1px solid #1e3a5f', borderRadius: '12px', padding: '30px', marginBottom: '30px', maxWidth: '600px', margin: '0 auto 30px'}}>
-            <h2 style={{color: '#0ea5e9', marginBottom: '20px', fontSize: '20px'}}>Nowa rezerwacja</h2>
+            <h2 style={{color: '#00c96e', marginBottom: '20px', fontSize: '20px'}}>Nowa rezerwacja</h2>
             <form className="booking-form" onSubmit={handleAddReservation}>
-
-              <select
-                name="resource_id"
-                value={newReservation.resource_id}
-                onChange={handleNewChange}
-              >
+              <select name="resource_id" value={newReservation.resource_id} onChange={handleNewChange}>
                 <option value="">Wybierz tor lub stół</option>
                 {resources.map(r => (
                   <option key={r.id} value={r.id}>
@@ -289,103 +361,93 @@ export default function Admin() {
                   </option>
                 ))}
               </select>
-
-              <input
-                type="text"
-                name="customer_name"
-                placeholder="Imię i nazwisko klienta"
-                value={newReservation.customer_name}
-                onChange={handleNewChange}
-                maxLength={30}
-              />
-
-              <input
-                type="tel"
-                name="customer_phone"
-                placeholder="Telefon klienta"
-                value={newReservation.customer_phone}
-                onChange={handleNewChange}
-                maxLength={25}
-              />
-
-              <input
-                type="email"
-                name="customer_email"
-                placeholder="Email klienta (opcjonalnie)"
-                value={newReservation.customer_email}
-                onChange={handleNewChange}
-              />
-
-              <input
-                type="date"
-                name="date"
-                value={newReservation.date}
-                onChange={handleNewChange}
-              />
-
+              <input type="text" name="customer_name" placeholder="Imię i nazwisko klienta" value={newReservation.customer_name} onChange={handleNewChange} maxLength={30} />
+              <input type="tel" name="customer_phone" placeholder="Telefon klienta" value={newReservation.customer_phone} onChange={handleNewChange} maxLength={25} />
+              <input type="email" name="customer_email" placeholder="Email klienta (opcjonalnie)" value={newReservation.customer_email} onChange={handleNewChange} />
+              <input type="date" name="date" value={newReservation.date} onChange={handleNewChange} />
               <div className="time-row">
-                <select
-                  name="start_time"
-                  value={newReservation.start_time}
-                  onChange={handleNewChange}
-                >
+                <select name="start_time" value={newReservation.start_time} onChange={handleNewChange}>
                   <option value="">Godzina start</option>
                   {allTimeOptions.slice(0, -1).map(slot => (
                     <option key={slot} value={slot}>{slot}</option>
                   ))}
                 </select>
                 <span>do</span>
-                <select
-                  name="end_time"
-                  value={newReservation.end_time}
-                  onChange={handleNewChange}
-                >
+                <select name="end_time" value={newReservation.end_time} onChange={handleNewChange}>
                   <option value="">Godzina koniec</option>
                   {allTimeOptions.slice(1).map(slot => (
                     <option key={slot} value={slot}>{slot}</option>
                   ))}
                 </select>
               </div>
-
               <textarea
                 name="opis"
-                placeholder="Opis / uwagi (opcjonalnie) — np. impreza firmowa, specjalne życzenia"
+                placeholder="Opis / uwagi (opcjonalnie)"
                 value={newReservation.opis}
                 onChange={handleNewChange}
                 rows={3}
-                style={{
-                  width: '100%',
-                  maxWidth: '400px',
-                  padding: '14px 16px',
-                  backgroundColor: '#0a0a0f',
-                  border: '1px solid #1e3a5f',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontSize: '16px',
-                  resize: 'vertical',
-                }}
+                style={{width: '100%', maxWidth: '400px', padding: '14px 16px', backgroundColor: '#0a0a0f', border: '1px solid #1e3a5f', borderRadius: '8px', color: 'white', fontSize: '16px', resize: 'vertical'}}
               />
-
-              <button type="submit" className="btn" style={{backgroundColor: '#00c96e'}}>
-                Dodaj rezerwację
-              </button>
+              <button type="submit" className="btn" style={{backgroundColor: '#00c96e'}}>Dodaj rezerwację</button>
             </form>
-            {addMessage && (
-              <p style={{marginTop: '16px', color: addMessage.startsWith('✓') ? '#00c96e' : '#e63946', fontSize: '16px'}}>
-                {addMessage}
-              </p>
+            {addMessage && <p style={{marginTop: '16px', color: addMessage.startsWith('✓') ? '#00c96e' : '#e63946', fontSize: '16px'}}>{addMessage}</p>}
+          </div>
+        )}
+
+        {/* Closure form */}
+        {showClosureForm && (
+          <div style={{backgroundColor: '#0f172a', border: '1px solid #e63946', borderRadius: '12px', padding: '30px', marginBottom: '30px', maxWidth: '600px', margin: '0 auto 30px'}}>
+            <h2 style={{color: '#e63946', marginBottom: '20px', fontSize: '20px'}}>🔒 Wyłącz tor / stół z użytku</h2>
+            <form className="booking-form" onSubmit={handleAddClosure}>
+              <select name="resource_id" value={newClosure.resource_id} onChange={handleClosureChange}>
+                <option value="">Wybierz tor lub stół</option>
+                {resources.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({r.type === 'bowling' ? 'Kręgle' : 'Bilard'})
+                  </option>
+                ))}
+              </select>
+              <input type="date" name="date" value={newClosure.date} onChange={handleClosureChange} />
+              <div className="time-row">
+                <select name="start_time" value={newClosure.start_time} onChange={handleClosureChange}>
+                  <option value="">Godzina start</option>
+                  {allTimeOptions.slice(0, -1).map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+                <span>do</span>
+                <select name="end_time" value={newClosure.end_time} onChange={handleClosureChange}>
+                  <option value="">Godzina koniec</option>
+                  {allTimeOptions.slice(1).map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+              <input type="text" name="reason" placeholder="Powód wyłączenia (np. usterka, serwis)" value={newClosure.reason} onChange={handleClosureChange} />
+              <button type="submit" className="btn" style={{backgroundColor: '#e63946'}}>Wyłącz</button>
+            </form>
+            {closureMessage && <p style={{marginTop: '16px', color: closureMessage.startsWith('✓') ? '#00c96e' : '#e63946', fontSize: '16px'}}>{closureMessage}</p>}
+
+            {/* List of active closures for selected date */}
+            {closures.length > 0 && (
+              <div style={{marginTop: '24px'}}>
+                <h3 style={{color: '#e63946', marginBottom: '12px', fontSize: '16px'}}>Aktywne wyłączenia na {selectedDate}:</h3>
+                {closures.map(c => (
+                  <div key={c.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', backgroundColor: '#1a0a0f', borderRadius: '6px', marginBottom: '8px'}}>
+                    <span style={{color: '#a0a0b0', fontSize: '14px'}}>
+                      {c.resources?.name} | {normalizeTime(c.start_time)} - {normalizeTime(c.end_time)} {c.reason ? `| ${c.reason}` : ''}
+                    </span>
+                    <button className="delete-btn" onClick={() => handleDeleteClosure(c.id)}>Usuń</button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {/* Date picker and view toggle */}
         <div style={{display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap'}}>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="admin-filter-input"
-          />
+          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="admin-filter-input" />
           <button
             className="type-btn"
             style={{borderColor: selectedDate === getTodayPoland() ? '#0ea5e9' : ''}}
@@ -394,18 +456,8 @@ export default function Admin() {
             Dzisiaj
           </button>
           <div style={{display: 'flex', gap: '8px'}}>
-            <button
-              className={view === 'grid' ? 'type-btn active' : 'type-btn'}
-              onClick={() => setView('grid')}
-            >
-              📅 Siatka
-            </button>
-            <button
-              className={view === 'list' ? 'type-btn active' : 'type-btn'}
-              onClick={() => setView('list')}
-            >
-              📋 Lista
-            </button>
+            <button className={view === 'grid' ? 'type-btn active' : 'type-btn'} onClick={() => setView('grid')}>📅 Siatka</button>
+            <button className={view === 'list' ? 'type-btn active' : 'type-btn'} onClick={() => setView('list')}>📋 Lista</button>
           </div>
         </div>
 
@@ -430,33 +482,35 @@ export default function Admin() {
                   <tr key={timeSlot}>
                     <td className="schedule-time-cell">{timeSlot}</td>
                     {lanes.map(lane => {
-                      const reservation = getReservationForSlot(lane.id, timeSlot)
-                      const isFirst = isFirstSlotOfReservation(lane.id, timeSlot)
+                      const entry = getReservationForSlot(lane.id, timeSlot)
+                      const isFirst = isFirstSlotOfEntry(lane.id, timeSlot)
 
-                      if (reservation && !isFirst) return null
+                      if (entry && !isFirst) return null
 
-                      if (reservation && isFirst) {
-                        const rowSpan = getReservationRowSpan(reservation)
+                      if (entry && isFirst) {
+                        const rowSpan = getEntryRowSpan(entry)
                         return (
                           <td
                             key={lane.id}
                             rowSpan={rowSpan}
-                            className="schedule-booked-cell"
+                            className={entry.isClosure ? 'schedule-closure-cell' : 'schedule-booked-cell'}
                           >
                             <div className="schedule-booking-info">
-                              <strong>{reservation.customer_name}</strong>
-                              <span>{normalizeTime(reservation.start_time)} - {normalizeTime(reservation.end_time)}</span>
-                              <span style={{fontSize: '11px', color: '#ffaaaa'}}>{reservation.customer_phone}</span>
-                              {reservation.opis && (
-                                <span style={{fontSize: '11px', color: '#a0a0b0', fontStyle: 'italic'}}>{reservation.opis}</span>
+                              {entry.isClosure ? (
+                                <>
+                                  <strong style={{color: '#e63946'}}>🔒 WYŁĄCZONY</strong>
+                                  {entry.reason && <span style={{fontSize: '11px', color: '#a0a0b0'}}>{entry.reason}</span>}
+                                  <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={() => handleDeleteClosure(entry.id)}>Usuń</button>
+                                </>
+                              ) : (
+                                <>
+                                  <strong>{entry.customer_name}</strong>
+                                  <span>{normalizeTime(entry.start_time)} - {normalizeTime(entry.end_time)}</span>
+                                  <span style={{fontSize: '11px', color: '#ffaaaa'}}>{entry.customer_phone}</span>
+                                  {entry.opis && <span style={{fontSize: '11px', color: '#a0a0b0', fontStyle: 'italic'}}>{entry.opis}</span>}
+                                  <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={() => handleDelete(entry.id)}>Usuń</button>
+                                </>
                               )}
-                              <button
-                                className="delete-btn"
-                                style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}}
-                                onClick={() => handleDelete(reservation.id)}
-                              >
-                                Usuń
-                              </button>
                             </div>
                           </td>
                         )
@@ -497,14 +551,7 @@ export default function Admin() {
                         <td>{r.customer_name}</td>
                         <td>{r.customer_phone}</td>
                         <td>{r.opis || '-'}</td>
-                        <td>
-                          <button
-                            className="delete-btn"
-                            onClick={() => handleDelete(r.id)}
-                          >
-                            Usuń
-                          </button>
-                        </td>
+                        <td><button className="delete-btn" onClick={() => handleDelete(r.id)}>Usuń</button></td>
                       </tr>
                     ))}
                   </tbody>
