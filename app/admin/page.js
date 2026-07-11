@@ -31,8 +31,6 @@ export default function Admin() {
   const [newClosure, setNewClosure] = useState({
     resource_id: '',
     date: '',
-    start_time: '',
-    end_time: '',
     reason: '',
   })
 
@@ -160,7 +158,7 @@ export default function Admin() {
   }
 
   async function handleDeleteClosure(id) {
-    const confirmed = window.confirm('Czy na pewno chcesz usunąć to wyłączenie?')
+    const confirmed = window.confirm('Czy na pewno chcesz przywrócić ten tor/stół?')
     if (!confirmed) return
     const { error } = await supabase
       .from('closures')
@@ -227,24 +225,22 @@ export default function Admin() {
     setClosureMessage('')
     if (!newClosure.resource_id) { setClosureMessage('Wybierz tor lub stół.'); return }
     if (!newClosure.date) { setClosureMessage('Wybierz datę.'); return }
-    if (!newClosure.start_time) { setClosureMessage('Wybierz godzinę rozpoczęcia.'); return }
-    if (!newClosure.end_time) { setClosureMessage('Wybierz godzinę zakończenia.'); return }
 
     const { error } = await supabase
       .from('closures')
-      .insert([newClosure])
+      .insert([{
+        resource_id: newClosure.resource_id,
+        date: newClosure.date,
+        start_time: '13:00',
+        end_time: '00:00',
+        reason: newClosure.reason,
+      }])
 
     if (error) {
       setClosureMessage('Błąd: ' + error.message)
     } else {
-      setClosureMessage('✓ Wyłączenie dodane!')
-      setNewClosure({
-        resource_id: '',
-        date: '',
-        start_time: '',
-        end_time: '',
-        reason: '',
-      })
+      setClosureMessage('✓ Tor/stół wyłączony na cały dzień!')
+      setNewClosure({ resource_id: '', date: '', reason: '' })
       loadClosures(selectedDate)
     }
   }
@@ -261,18 +257,14 @@ export default function Admin() {
     const reservation = reservations.find(r => {
       if (r.resource_id !== laneId) return false
       const slotMinutes = timeToMinutes(timeSlot)
-      const startMinutes = timeToMinutes(r.start_time)
-      const endMinutes = timeToMinutes(r.end_time)
-      return slotMinutes >= startMinutes && slotMinutes < endMinutes
+      return slotMinutes >= timeToMinutes(r.start_time) && slotMinutes < timeToMinutes(r.end_time)
     })
     if (reservation) return { ...reservation, isClosure: false }
 
     const closure = closures.find(c => {
       if (c.resource_id !== laneId) return false
       const slotMinutes = timeToMinutes(timeSlot)
-      const startMinutes = timeToMinutes(c.start_time)
-      const endMinutes = timeToMinutes(c.end_time)
-      return slotMinutes >= startMinutes && slotMinutes < endMinutes
+      return slotMinutes >= timeToMinutes(c.start_time) && slotMinutes < timeToMinutes(c.end_time)
     })
     if (closure) return { ...closure, isClosure: true }
 
@@ -300,20 +292,8 @@ export default function Admin() {
           <h1>Panel admina</h1>
           <p>Zaloguj się aby zobaczyć rezerwacje</p>
           <form className="booking-form" onSubmit={handleLogin}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Hasło"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input type="password" placeholder="Hasło" value={password} onChange={e => setPassword(e.target.value)} required />
             <button type="submit" className="btn">Zaloguj się</button>
           </form>
           {message && <p className="booking-message" style={{color: '#e63946'}}>{message}</p>}
@@ -356,9 +336,7 @@ export default function Admin() {
               <select name="resource_id" value={newReservation.resource_id} onChange={handleNewChange}>
                 <option value="">Wybierz tor lub stół</option>
                 {resources.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({r.type === 'bowling' ? 'Kręgle' : 'Bilard'})
-                  </option>
+                  <option key={r.id} value={r.id}>{r.name} ({r.type === 'bowling' ? 'Kręgle' : 'Bilard'})</option>
                 ))}
               </select>
               <input type="text" name="customer_name" placeholder="Imię i nazwisko klienta" value={newReservation.customer_name} onChange={handleNewChange} maxLength={30} />
@@ -397,47 +375,30 @@ export default function Admin() {
         {/* Closure form */}
         {showClosureForm && (
           <div style={{backgroundColor: '#0f172a', border: '1px solid #e63946', borderRadius: '12px', padding: '30px', marginBottom: '30px', maxWidth: '600px', margin: '0 auto 30px'}}>
-            <h2 style={{color: '#e63946', marginBottom: '20px', fontSize: '20px'}}>🔒 Wyłącz tor / stół z użytku</h2>
+            <h2 style={{color: '#e63946', marginBottom: '8px', fontSize: '20px'}}>🔒 Wyłącz tor / stół na cały dzień</h2>
+            <p style={{color: '#a0a0b0', fontSize: '14px', marginBottom: '20px'}}>Tor zostanie wyłączony na cały dzień. Możesz go przywrócić w dowolnym momencie klikając "Usuń" poniżej.</p>
             <form className="booking-form" onSubmit={handleAddClosure}>
               <select name="resource_id" value={newClosure.resource_id} onChange={handleClosureChange}>
                 <option value="">Wybierz tor lub stół</option>
                 {resources.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({r.type === 'bowling' ? 'Kręgle' : 'Bilard'})
-                  </option>
+                  <option key={r.id} value={r.id}>{r.name} ({r.type === 'bowling' ? 'Kręgle' : 'Bilard'})</option>
                 ))}
               </select>
               <input type="date" name="date" value={newClosure.date} onChange={handleClosureChange} />
-              <div className="time-row">
-                <select name="start_time" value={newClosure.start_time} onChange={handleClosureChange}>
-                  <option value="">Godzina start</option>
-                  {allTimeOptions.slice(0, -1).map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
-                <span>do</span>
-                <select name="end_time" value={newClosure.end_time} onChange={handleClosureChange}>
-                  <option value="">Godzina koniec</option>
-                  {allTimeOptions.slice(1).map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
-              </div>
               <input type="text" name="reason" placeholder="Powód wyłączenia (np. usterka, serwis)" value={newClosure.reason} onChange={handleClosureChange} />
-              <button type="submit" className="btn" style={{backgroundColor: '#e63946'}}>Wyłącz</button>
+              <button type="submit" className="btn" style={{backgroundColor: '#e63946'}}>Wyłącz na cały dzień</button>
             </form>
             {closureMessage && <p style={{marginTop: '16px', color: closureMessage.startsWith('✓') ? '#00c96e' : '#e63946', fontSize: '16px'}}>{closureMessage}</p>}
 
-            {/* List of active closures for selected date */}
             {closures.length > 0 && (
               <div style={{marginTop: '24px'}}>
                 <h3 style={{color: '#e63946', marginBottom: '12px', fontSize: '16px'}}>Aktywne wyłączenia na {selectedDate}:</h3>
                 {closures.map(c => (
                   <div key={c.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', backgroundColor: '#1a0a0f', borderRadius: '6px', marginBottom: '8px'}}>
                     <span style={{color: '#a0a0b0', fontSize: '14px'}}>
-                      {c.resources?.name} | {normalizeTime(c.start_time)} - {normalizeTime(c.end_time)} {c.reason ? `| ${c.reason}` : ''}
+                      {c.resources?.name} — cały dzień {c.reason ? `| ${c.reason}` : ''}
                     </span>
-                    <button className="delete-btn" onClick={() => handleDeleteClosure(c.id)}>Usuń</button>
+                    <button className="delete-btn" onClick={() => handleDeleteClosure(c.id)}>Przywróć</button>
                   </div>
                 ))}
               </div>
@@ -490,17 +451,13 @@ export default function Admin() {
                       if (entry && isFirst) {
                         const rowSpan = getEntryRowSpan(entry)
                         return (
-                          <td
-                            key={lane.id}
-                            rowSpan={rowSpan}
-                            className={entry.isClosure ? 'schedule-closure-cell' : 'schedule-booked-cell'}
-                          >
+                          <td key={lane.id} rowSpan={rowSpan} className={entry.isClosure ? 'schedule-closure-cell' : 'schedule-booked-cell'}>
                             <div className="schedule-booking-info">
                               {entry.isClosure ? (
                                 <>
                                   <strong style={{color: '#e63946'}}>🔒 WYŁĄCZONY</strong>
                                   {entry.reason && <span style={{fontSize: '11px', color: '#a0a0b0'}}>{entry.reason}</span>}
-                                  <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={() => handleDeleteClosure(entry.id)}>Usuń</button>
+                                  <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={() => handleDeleteClosure(entry.id)}>Przywróć</button>
                                 </>
                               ) : (
                                 <>
