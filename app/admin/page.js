@@ -8,7 +8,6 @@ export default function Admin() {
   const [password, setPassword] = useState('')
   const [session, setSession] = useState(null)
   const [reservations, setReservations] = useState([])
-  const [weekReservations, setWeekReservations] = useState([])
   const [bowlingResources, setBowlingResources] = useState([])
   const [billardsResources, setBillardsResources] = useState([])
   const [allResources, setAllResources] = useState([])
@@ -51,8 +50,6 @@ export default function Admin() {
     '22:00', '22:30', '23:00', '23:30', '00:00'
   ]
 
-  const dayNames = ['Nd', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob']
-
   function getTodayPoland() {
     const now = new Date()
     return new Intl.DateTimeFormat('en-CA', {
@@ -61,25 +58,6 @@ export default function Admin() {
       month: '2-digit',
       day: '2-digit',
     }).format(now)
-  }
-
-  function getWeekDates(dateString) {
-    const date = new Date(dateString + 'T12:00:00')
-    const day = date.getDay()
-    const monday = new Date(date)
-    monday.setDate(date.getDate() - (day === 0 ? 6 : day - 1))
-    const dates = []
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday)
-      d.setDate(monday.getDate() + i)
-      dates.push(new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Europe/Warsaw',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(d))
-    }
-    return dates
   }
 
   function normalizeTime(time) {
@@ -92,11 +70,6 @@ export default function Admin() {
     if (t === '00:00') return 24 * 60
     const [h, m] = t.split(':').map(Number)
     return h * 60 + m
-  }
-
-  function formatDate(dateString) {
-    const [y, m, d] = dateString.split('-')
-    return `${d}.${m}`
   }
 
   useEffect(() => {
@@ -114,15 +87,8 @@ export default function Admin() {
     if (session && selectedDate) {
       loadReservations(selectedDate)
       loadClosures(selectedDate)
-      if (view === 'week') loadWeekReservations(selectedDate)
     }
   }, [session, selectedDate])
-
-  useEffect(() => {
-    if (session && selectedDate && view === 'week') {
-      loadWeekReservations(selectedDate)
-    }
-  }, [view])
 
   async function loadResources() {
     const { data } = await supabase.from('resources').select('*').order('id')
@@ -139,18 +105,6 @@ export default function Admin() {
       .eq('date', date)
       .order('start_time')
     setReservations(data || [])
-  }
-
-  async function loadWeekReservations(date) {
-    const dates = getWeekDates(date)
-    const { data } = await supabase
-      .from('reservations')
-      .select('*, resources(name, type)')
-      .gte('date', dates[0])
-      .lte('date', dates[6])
-      .order('date')
-      .order('start_time')
-    setWeekReservations(data || [])
   }
 
   async function loadClosures(date) {
@@ -187,10 +141,7 @@ export default function Admin() {
     const confirmed = window.confirm('Czy na pewno chcesz usunąć tę rezerwację?')
     if (!confirmed) return
     const { error } = await supabase.from('reservations').delete().eq('id', id)
-    if (!error) {
-      loadReservations(selectedDate)
-      if (view === 'week') loadWeekReservations(selectedDate)
-    }
+    if (!error) loadReservations(selectedDate)
   }
 
   async function handleDeleteClosure(id) {
@@ -247,7 +198,6 @@ export default function Admin() {
       setSelectedLanes([])
       setNewReservation({ customer_name: '', customer_phone: '', customer_email: '', date: '', start_time: '', end_time: '', opis: '', osoby: '' })
       loadReservations(selectedDate)
-      if (view === 'week') loadWeekReservations(selectedDate)
     }
   }
 
@@ -381,114 +331,6 @@ export default function Admin() {
     )
   }
 
-  function renderWeekView() {
-    const weekDates = getWeekDates(selectedDate)
-    const today = getTodayPoland()
-
-    return (
-      <div>
-        <h2 style={{color: '#0ea5e9', marginBottom: '16px', fontSize: '20px'}}>🎳 Kręgle — widok tygodniowy</h2>
-        <div className="schedule-wrapper">
-          <table className="schedule-table">
-            <thead>
-              <tr>
-                <th className="schedule-time-header">Tor</th>
-                {weekDates.map(date => {
-                  const d = new Date(date + 'T12:00:00')
-                  const isToday = date === today
-                  return (
-                    <th key={date} className="schedule-lane-header" style={{borderColor: isToday ? '#0ea5e9' : '', backgroundColor: isToday ? '#0f2a4a' : ''}}>
-                      <div>{dayNames[d.getDay()]}</div>
-                      <div style={{fontSize: '12px', color: '#a0a0b0'}}>{formatDate(date)}</div>
-                    </th>
-                  )
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {bowlingResources.map(lane => (
-                <tr key={lane.id}>
-                  <td className="schedule-time-cell">{lane.name}</td>
-                  {weekDates.map(date => {
-                    const dayReservations = weekReservations.filter(r =>
-                      r.resource_id === lane.id && r.date === date
-                    )
-                    return (
-                      <td key={date} className="schedule-empty-cell" style={{verticalAlign: 'top', padding: '4px', minWidth: '120px'}}>
-                        {dayReservations.length === 0 ? (
-                          <span style={{color: '#2a2a4a', fontSize: '12px'}}>wolny</span>
-                        ) : (
-                          dayReservations.map(r => (
-                            <div key={r.id} style={{backgroundColor: '#0f172a', border: '1px solid #0ea5e9', borderRadius: '6px', padding: '6px', marginBottom: '4px'}}>
-                              <div style={{fontSize: '12px', color: '#0ea5e9', fontWeight: 'bold'}}>{normalizeTime(r.start_time)} - {normalizeTime(r.end_time)}</div>
-                              <div style={{fontSize: '11px', color: 'white'}}>{r.customer_name}</div>
-                              {r.osoby && <div style={{fontSize: '11px', color: '#00c96e'}}>👥 {r.osoby} os.</div>}
-                              {r.opis && <div style={{fontSize: '11px', color: '#e0c070', fontStyle: 'italic'}}>📝 {r.opis}</div>}
-                              <button className="delete-btn" style={{marginTop: '4px', fontSize: '10px', padding: '2px 8px'}} onClick={() => handleDelete(r.id)}>Usuń</button>
-                            </div>
-                          ))
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <h2 style={{color: '#0ea5e9', margin: '40px 0 16px', fontSize: '20px'}}>🎱 Bilard — widok tygodniowy</h2>
-        <div className="schedule-wrapper">
-          <table className="schedule-table">
-            <thead>
-              <tr>
-                <th className="schedule-time-header">Stół</th>
-                {weekDates.map(date => {
-                  const d = new Date(date + 'T12:00:00')
-                  const isToday = date === today
-                  return (
-                    <th key={date} className="schedule-lane-header" style={{borderColor: isToday ? '#0ea5e9' : '', backgroundColor: isToday ? '#0f2a4a' : ''}}>
-                      <div>{dayNames[d.getDay()]}</div>
-                      <div style={{fontSize: '12px', color: '#a0a0b0'}}>{formatDate(date)}</div>
-                    </th>
-                  )
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {billardsResources.map(table => (
-                <tr key={table.id}>
-                  <td className="schedule-time-cell">{table.name}</td>
-                  {weekDates.map(date => {
-                    const dayReservations = weekReservations.filter(r =>
-                      r.resource_id === table.id && r.date === date
-                    )
-                    return (
-                      <td key={date} className="schedule-empty-cell" style={{verticalAlign: 'top', padding: '4px', minWidth: '120px'}}>
-                        {dayReservations.length === 0 ? (
-                          <span style={{color: '#2a2a4a', fontSize: '12px'}}>wolny</span>
-                        ) : (
-                          dayReservations.map(r => (
-                            <div key={r.id} style={{backgroundColor: '#0f172a', border: '1px solid #0ea5e9', borderRadius: '6px', padding: '6px', marginBottom: '4px'}}>
-                              <div style={{fontSize: '12px', color: '#0ea5e9', fontWeight: 'bold'}}>{normalizeTime(r.start_time)} - {normalizeTime(r.end_time)}</div>
-                              <div style={{fontSize: '11px', color: 'white'}}>{r.customer_name}</div>
-                              {r.opis && <div style={{fontSize: '11px', color: '#e0c070', fontStyle: 'italic'}}>📝 {r.opis}</div>}
-                              <button className="delete-btn" style={{marginTop: '4px', fontSize: '10px', padding: '2px 8px'}} onClick={() => handleDelete(r.id)}>Usuń</button>
-                            </div>
-                          ))
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-  }
-
   if (!session) {
     return (
       <main>
@@ -514,7 +356,6 @@ export default function Admin() {
           <button className="btn" onClick={handleLogout}>Wyloguj</button>
         </div>
 
-        {/* Action buttons */}
         <div style={{display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '24px', flexWrap: 'wrap'}}>
           <button
             className="type-btn"
@@ -532,7 +373,6 @@ export default function Admin() {
           </button>
         </div>
 
-        {/* Add reservation form */}
         {showAddForm && (
           <div style={{backgroundColor: '#0f172a', border: '1px solid #1e3a5f', borderRadius: '12px', padding: '30px', marginBottom: '30px', maxWidth: '620px', margin: '0 auto 30px'}}>
             <h2 style={{color: '#00c96e', marginBottom: '20px', fontSize: '20px'}}>Nowa rezerwacja</h2>
@@ -566,23 +406,17 @@ export default function Admin() {
               <div className="time-row">
                 <select name="start_time" value={newReservation.start_time} onChange={handleNewChange}>
                   <option value="">Godzina start</option>
-                  {allTimeOptions.slice(0, -1).map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
+                  {allTimeOptions.slice(0, -1).map(slot => (<option key={slot} value={slot}>{slot}</option>))}
                 </select>
                 <span>do</span>
                 <select name="end_time" value={newReservation.end_time} onChange={handleNewChange}>
                   <option value="">Godzina koniec</option>
-                  {allTimeOptions.slice(1).map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
+                  {allTimeOptions.slice(1).map(slot => (<option key={slot} value={slot}>{slot}</option>))}
                 </select>
               </div>
               <select name="osoby" value={newReservation.osoby} onChange={handleNewChange}>
                 <option value="">Liczba osób (opcjonalnie)</option>
-                {[1,2,3,4,5,6].map(n => (
-                  <option key={n} value={n}>{n} {n === 1 ? 'osoba' : n < 5 ? 'osoby' : 'osób'} na tor</option>
-                ))}
+                {[1,2,3,4,5,6].map(n => (<option key={n} value={n}>{n} {n === 1 ? 'osoba' : n < 5 ? 'osoby' : 'osób'} na tor</option>))}
               </select>
               <textarea
                 name="opis"
@@ -600,7 +434,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Closure form */}
         {showClosureForm && (
           <div style={{backgroundColor: '#0f172a', border: '1px solid #e63946', borderRadius: '12px', padding: '30px', marginBottom: '30px', maxWidth: '600px', margin: '0 auto 30px'}}>
             <h2 style={{color: '#e63946', marginBottom: '8px', fontSize: '20px'}}>🔒 Wyłącz tor / stół na cały dzień</h2>
@@ -634,14 +467,12 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Date picker and view toggle */}
         <div style={{display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap'}}>
           <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="admin-filter-input" />
           <button className="type-btn" style={{borderColor: selectedDate === getTodayPoland() ? '#0ea5e9' : ''}} onClick={() => setSelectedDate(getTodayPoland())}>Dzisiaj</button>
           <div style={{display: 'flex', gap: '8px'}}>
             <button className={view === 'grid' ? 'type-btn active' : 'type-btn'} onClick={() => setView('grid')}>📅 Siatka</button>
             <button className={view === 'list' ? 'type-btn active' : 'type-btn'} onClick={() => setView('list')}>📋 Lista</button>
-            <button className={view === 'week' ? 'type-btn active' : 'type-btn'} onClick={() => setView('week')}>📆 Tydzień</button>
           </div>
         </div>
 
@@ -649,7 +480,6 @@ export default function Admin() {
           Rezerwacje na: <strong style={{color: 'white'}}>{selectedDate}</strong> — łącznie: {reservations.length}
         </p>
 
-        {/* GRID VIEW */}
         {view === 'grid' && (
           <>
             <h2 style={{color: '#0ea5e9', marginBottom: '12px', fontSize: '20px'}}>🎳 Kręgle</h2>
@@ -659,10 +489,6 @@ export default function Admin() {
           </>
         )}
 
-        {/* WEEK VIEW */}
-        {view === 'week' && renderWeekView()}
-
-        {/* LIST VIEW */}
         {view === 'list' && (
           <>
             {reservations.length === 0 ? (
