@@ -2,7 +2,7 @@ import "./globals.css"
 import Navbar from "./components/Navbar"
 
 export const metadata = {
-  title: "Bowling Club",
+  title: "Kwazar Bowling Club",
   description: "Zarezerwuj tor bowlingowy lub stół bilardowy",
 }
 
