@@ -35,7 +35,20 @@ export default function Contact() {
             </div>
           </div>
 
-          <div className="special-notice">
+          {/* Google Maps */}
+          <div style={{marginTop: '50px', borderRadius: '16px', overflow: 'hidden', border: '2px solid #1e3a5f', maxWidth: '900px', margin: '50px auto 0'}}>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2564.913138832567!2d20.99811057516227!3d49.99423793903015!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x473d9b45a533fb31%3A0x73967f08a0265685!2sKwazar%20Bowling%20Club!5e0!3m2!1spl!2spl!4v1783878802643!5m2!1spl!2spl"
+              width="100%"
+              height="450"
+              style={{border: 0, display: 'block'}}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          </div>
+
+          <div className="special-notice" style={{marginTop: '50px'}}>
             <h2>📞 Rezerwacje</h2>
             <p>
               Wszystkie rezerwacje — zarówno indywidualne jak i grupowe, imprezy okolicznościowe
