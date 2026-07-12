@@ -2,10 +2,10 @@ export default function About() {
   return (
     <main>
       <section className="hero">
-        <h1>O nas</h1>
-        <p>Jesteśmy największym klubem rozrywkowym w Tarnowie!</p>
+        <h1 className="neon-title">O nas</h1>
+        <p className="neon-subtitle">Jesteśmy największym klubem rozrywkowym w Tarnowie!</p>
 
-        <div className="info-grid">
+        <div className="info-grid" style={{marginTop: '60px'}}>
           <div className="info-card">
             <h2>🎳 Tory bowlingowe</h2>
             <p>6 profesjonalnych, w pełni zautomatyzowanych torów bowlingowych dostępnych dla graczy w każdym wieku.</p>

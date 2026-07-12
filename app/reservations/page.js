@@ -102,8 +102,8 @@ export default function Reservations() {
   return (
     <main>
       <section className="hero">
-        <h1>Dostępność torów</h1>
-        <p>Sprawdź wolne terminy i zadzwoń do nas aby zarezerwować!</p>
+       <h1 className="neon-title">Dostępność torów</h1>
+<p className="neon-subtitle">Sprawdź wolne terminy i zadzwoń do nas aby zarezerwować!</p>
 
         <div style={{margin: '24px auto', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px'}}>
           <p style={{fontSize: '18px', color: 'white', marginBottom: '8px'}}>📞 Rezerwacje tylko telefonicznie:</p>
@@ -114,18 +114,15 @@ export default function Reservations() {
         </div>
 
         <div style={{display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap'}}>
-          <input
-            type="date"
-            value={gridDate}
-            onChange={e => setGridDate(e.target.value)}
-            min={getTodayPoland()}
-            max={getMaxDate()}
-            className="admin-filter-input"
-          />
-          <button className="type-btn" onClick={() => setGridDate(getTodayPoland())}>
-            Dzisiaj
-          </button>
-        </div>
+  <input
+    type="date"
+    value={gridDate}
+    onChange={e => setGridDate(e.target.value)}
+    min={getTodayPoland()}
+    max={getMaxDate()}
+    className="date-picker-large"
+  />
+</div>
 
         <div style={{display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '16px'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>

@@ -2,10 +2,10 @@ export default function Contact() {
   return (
     <main>
       <section className="hero">
-        <h1>Kontakt</h1>
-        <p>Masz pytania? Jesteśmy do dyspozycji!</p>
+        <h1 className="neon-title">Kontakt</h1>
+        <p className="neon-subtitle">Masz pytania? Jesteśmy do dyspozycji!</p>
 
-        <div className="info-grid">
+        <div className="info-grid" style={{marginTop: '40px'}}>
           <div className="info-card">
             <h2>📍 Adres</h2>
             <p>Al. Tarnowskich 61</p>
@@ -33,22 +33,18 @@ export default function Contact() {
         </div>
 
         <div className="special-notice">
-          <h2>🎉 Większe rezerwacje i imprezy okolicznościowe</h2>
+          <h2>📞 Rezerwacje</h2>
           <p>
-            Rezerwacje grupowe, imprezy okolicznościowe, imprezy firmowe oraz wszelkie
-            specjalne życzenia (np. kilka torów na kilka godzin) wymagają wcześniejszego
-            uzgodnienia z personelem lub managerem klubu.
+            Wszystkie rezerwacje — zarówno indywidualne jak i grupowe, imprezy okolicznościowe
+            oraz imprezy firmowe — są przyjmowane wyłącznie telefonicznie.
+            Nasz personel wprowadzi rezerwację do systemu po uzgodnieniu szczegółów.
           </p>
           <p style={{marginTop: '16px'}}>
-            W takich przypadkach prosimy o kontakt telefoniczny:
+            Zadzwoń do nas:
           </p>
           <a href="tel:537523207" className="btn" style={{marginTop: '16px', display: 'inline-block'}}>
-            📞 537 523 207
+            <span style={{color: '#0ea5e9'}}>📞</span> 537 523 207
           </a>
-          <p style={{marginTop: '16px', color: '#606070', fontSize: '14px'}}>
-            Mniejsze rezerwacje (pojedyncze tory i stoły bilardowe) można składać
-            bezpośrednio przez naszą stronę w zakładce Rezerwacje.
-          </p>
         </div>
       </section>
     </main>
