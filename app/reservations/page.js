@@ -6,7 +6,8 @@ import { supabase } from '../supabase'
 export default function Reservations() {
   const [allReservations, setAllReservations] = useState([])
   const [allClosures, setAllClosures] = useState([])
-  const [lanes, setLanes] = useState([])
+  const [bowlingLanes, setBowlingLanes] = useState([])
+  const [billiardsTables, setBilliardsTables] = useState([])
   const [gridDate, setGridDate] = useState('')
 
   const timeSlots = [
@@ -48,7 +49,7 @@ export default function Reservations() {
   useEffect(() => {
     const today = getTodayPoland()
     setGridDate(today)
-    loadLanes()
+    loadResources()
   }, [])
 
   useEffect(() => {
@@ -58,13 +59,14 @@ export default function Reservations() {
     }
   }, [gridDate])
 
-  async function loadLanes() {
+  async function loadResources() {
     const { data } = await supabase
       .from('resources')
       .select('*')
-      .eq('type', 'bowling')
       .order('id')
-    setLanes(data || [])
+    const all = data || []
+    setBowlingLanes(all.filter(r => r.type === 'bowling'))
+    setBilliardsTables(all.filter(r => r.type === 'billiards'))
   }
 
   async function loadGridReservations(date) {
@@ -83,27 +85,62 @@ export default function Reservations() {
     setAllClosures(data || [])
   }
 
-  function isSlotUnavailable(laneId, timeSlot) {
+  function isSlotUnavailable(resourceId, timeSlot) {
     const slotMinutes = timeToMinutes(timeSlot)
 
-    const bookedByReservation = allReservations.some(r => {
-      if (r.resource_id !== laneId) return false
+    const booked = allReservations.some(r => {
+      if (r.resource_id !== resourceId) return false
       return slotMinutes >= timeToMinutes(r.start_time) && slotMinutes < timeToMinutes(r.end_time)
     })
 
-    const bookedByClosure = allClosures.some(c => {
-      if (c.resource_id !== laneId) return false
+    const closed = allClosures.some(c => {
+      if (c.resource_id !== resourceId) return false
       return slotMinutes >= timeToMinutes(c.start_time) && slotMinutes < timeToMinutes(c.end_time)
     })
 
-    return bookedByReservation || bookedByClosure
+    return booked || closed
+  }
+
+  function renderGrid(resources) {
+    return (
+      <div className="schedule-wrapper">
+        <table className="schedule-table">
+          <thead>
+            <tr>
+              <th className="schedule-time-header">Godzina</th>
+              {resources.map(r => (
+                <th key={r.id} className="schedule-lane-header">{r.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {timeSlots.map(timeSlot => (
+              <tr key={timeSlot}>
+                <td className="schedule-time-cell">{timeSlot}</td>
+                {resources.map(r => {
+                  const unavailable = isSlotUnavailable(r.id, timeSlot)
+                  return (
+                    <td
+                      key={r.id}
+                      className={unavailable ? 'schedule-booked-cell-public' : 'schedule-empty-cell'}
+                    >
+                      {unavailable ? '✕' : ''}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
   }
 
   return (
     <main>
       <section className="hero">
-       <h1 className="neon-title">Dostępność torów</h1>
-<p className="neon-subtitle">Sprawdź wolne terminy i zadzwoń do nas aby zarezerwować!</p>
+        <h1 className="neon-title">Dostępność</h1>
+        <p className="neon-subtitle">Sprawdź wolne terminy i zadzwoń do nas aby zarezerwować!</p>
 
         <div style={{margin: '24px auto', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px'}}>
           <p style={{fontSize: '18px', color: 'white', marginBottom: '8px'}}>📞 Rezerwacje tylko telefonicznie:</p>
@@ -113,18 +150,18 @@ export default function Reservations() {
           <p style={{fontSize: '13px', color: '#606070', marginTop: '8px'}}>Pon-Pt: 15:00 - 00:00 | Sob-Nd: 13:00 - 00:00</p>
         </div>
 
-        <div style={{display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap'}}>
-  <input
-    type="date"
-    value={gridDate}
-    onChange={e => setGridDate(e.target.value)}
-    min={getTodayPoland()}
-    max={getMaxDate()}
-    className="date-picker-large"
-  />
-</div>
+        <div style={{display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', margin: '20px 0', flexWrap: 'wrap'}}>
+          <input
+            type="date"
+            value={gridDate}
+            onChange={e => setGridDate(e.target.value)}
+            min={getTodayPoland()}
+            max={getMaxDate()}
+            className="date-picker-large"
+          />
+        </div>
 
-        <div style={{display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '16px'}}>
+        <div style={{display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '24px'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             <div style={{width: '20px', height: '20px', backgroundColor: '#1a0a0f', border: '2px solid #e63946', borderRadius: '4px'}}></div>
             <span style={{color: '#a0a0b0', fontSize: '13px'}}>Zajęty</span>
@@ -136,41 +173,14 @@ export default function Reservations() {
         </div>
 
         <h2 style={{color: '#0ea5e9', marginBottom: '16px', fontSize: '24px'}}>🎳 Kręgle</h2>
+        {renderGrid(bowlingLanes)}
 
-        <div className="schedule-wrapper">
-          <table className="schedule-table">
-            <thead>
-              <tr>
-                <th className="schedule-time-header">Godzina</th>
-                {lanes.map(lane => (
-                  <th key={lane.id} className="schedule-lane-header">{lane.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {timeSlots.map(timeSlot => (
-                <tr key={timeSlot}>
-                  <td className="schedule-time-cell">{timeSlot}</td>
-                  {lanes.map(lane => {
-                    const unavailable = isSlotUnavailable(lane.id, timeSlot)
-                    return (
-                      <td
-                        key={lane.id}
-                        className={unavailable ? 'schedule-booked-cell-public' : 'schedule-empty-cell'}
-                      >
-                        {unavailable ? '✕' : ''}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <h2 style={{color: '#0ea5e9', margin: '40px 0 16px', fontSize: '24px'}}>🎱 Bilard</h2>
+        {renderGrid(billiardsTables)}
 
         <div style={{marginTop: '30px', padding: '20px', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e3a5f', maxWidth: '500px', margin: '30px auto 0'}}>
           <p style={{color: '#a0a0b0', fontSize: '14px'}}>
-            Aby zarezerwować tor, zadzwoń pod numer <a href="tel:537523207" style={{color: '#0ea5e9'}}>537 523 207</a> a nasza obsługa wprowadzi rezerwację do systemu.
+            Aby zarezerwować tor lub stół bilardowy, zadzwoń pod numer <a href="tel:537523207" style={{color: '#0ea5e9'}}>537 523 207</a> a nasza obsługa wprowadzi rezerwację do systemu.
           </p>
         </div>
       </section>
