@@ -18,7 +18,6 @@ export default function Navbar() {
         />
       </a>
 
-      {/* Hamburger button - only on mobile */}
       <button
         className="hamburger"
         onClick={() => setMenuOpen(!menuOpen)}
@@ -26,10 +25,10 @@ export default function Navbar() {
         {menuOpen ? '✕' : '☰'}
       </button>
 
-      {/* Navigation links */}
       <div className={menuOpen ? 'nav-links open' : 'nav-links'}>
         <a href="/" onClick={() => setMenuOpen(false)}>Strona główna</a>
         <a href="/about" onClick={() => setMenuOpen(false)}>O nas</a>
+        <a href="/cennik" onClick={() => setMenuOpen(false)}>Cennik</a>
         <a href="/reservations" onClick={() => setMenuOpen(false)}>Rezerwacje</a>
         <a href="/contact" onClick={() => setMenuOpen(false)}>Kontakt</a>
       </div>

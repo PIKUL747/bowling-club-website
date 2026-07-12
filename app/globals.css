@@ -545,3 +545,30 @@ main {
   height: 24px;
   cursor: pointer;
 }
+/* PRICE TABLE */
+.price-table {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #1e3a5f;
+  font-size: 15px;
+  color: #a0a0b0;
+}
+
+.price-row.highlight {
+  color: white;
+}
+
+.price {
+  color: #0ea5e9;
+  font-weight: bold;
+  font-size: 18px;
+  white-space: nowrap;
+  margin-left: 16px;
+}
