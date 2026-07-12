@@ -1,15 +1,14 @@
+'use client'
+
 import "./globals.css"
 import Navbar from "./components/Navbar"
-
-export const metadata = {
-  title: "Kwazar Bowling Club",
-  description: "Zarezerwuj tor bowlingowy lub stół bilardowy",
-}
+import SplashScreen from "./components/SplashScreen"
 
 export default function RootLayout({ children }) {
   return (
     <html lang="pl">
       <body>
+        <SplashScreen />
         <Navbar />
         {children}
       </body>
