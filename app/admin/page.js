@@ -20,6 +20,7 @@ export default function Admin() {
   const [addMessage, setAddMessage] = useState('')
   const [closureMessage, setClosureMessage] = useState('')
   const [selectedLanes, setSelectedLanes] = useState([])
+  const [selectedReservation, setSelectedReservation] = useState(null)
   const [newReservation, setNewReservation] = useState({
     customer_name: '',
     customer_phone: '',
@@ -141,7 +142,10 @@ export default function Admin() {
     const confirmed = window.confirm('Czy na pewno chcesz usunąć tę rezerwację?')
     if (!confirmed) return
     const { error } = await supabase.from('reservations').delete().eq('id', id)
-    if (!error) loadReservations(selectedDate)
+    if (!error) {
+      setSelectedReservation(null)
+      loadReservations(selectedDate)
+    }
   }
 
   async function handleDeleteClosure(id) {
@@ -295,26 +299,26 @@ export default function Admin() {
                   if (entry && isFirst) {
                     const rowSpan = getRowSpan(entry)
                     return (
-                      <td key={lane.id} rowSpan={rowSpan} className={entry.isClosure ? 'schedule-closure-cell' : 'schedule-booked-cell'}>
+                      <td
+                        key={lane.id}
+                        rowSpan={rowSpan}
+                        className={entry.isClosure ? 'schedule-closure-cell' : 'schedule-booked-cell'}
+                        style={{cursor: entry.isClosure ? 'default' : 'pointer'}}
+                        onClick={() => !entry.isClosure && setSelectedReservation(entry)}
+                      >
                         <div className="schedule-booking-info">
                           {entry.isClosure ? (
                             <>
                               <strong style={{color: '#e63946'}}>🔒 WYŁĄCZONY</strong>
                               {entry.reason && <span style={{fontSize: '11px', color: '#a0a0b0'}}>{entry.reason}</span>}
-                              <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={() => handleDeleteClosure(entry.id)}>Przywróć</button>
+                              <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={(e) => { e.stopPropagation(); handleDeleteClosure(entry.id) }}>Przywróć</button>
                             </>
                           ) : (
                             <>
                               <strong style={{fontSize: '13px'}}>{entry.customer_name}</strong>
                               <span style={{fontSize: '12px', color: '#0ea5e9'}}>{normalizeTime(entry.start_time)} - {normalizeTime(entry.end_time)}</span>
                               {entry.osoby && <span style={{fontSize: '11px', color: '#00c96e'}}>👥 {entry.osoby} os.</span>}
-                              <span style={{fontSize: '11px', color: '#ffaaaa'}}>{entry.customer_phone}</span>
-                              {entry.opis && (
-                                <div style={{marginTop: '4px', padding: '4px 6px', backgroundColor: '#0a0a0f', borderRadius: '4px', border: '1px solid #1e3a5f'}}>
-                                  <span style={{fontSize: '11px', color: '#e0c070', fontStyle: 'italic'}}>📝 {entry.opis}</span>
-                                </div>
-                              )}
-                              <button className="delete-btn" style={{marginTop: '6px', fontSize: '11px', padding: '4px 10px'}} onClick={() => handleDelete(entry.id)}>Usuń</button>
+                              {entry.opis && <span style={{fontSize: '10px', color: '#e0c070'}}>📝 szczegóły...</span>}
                             </>
                           )}
                         </div>
@@ -351,6 +355,70 @@ export default function Admin() {
   return (
     <main>
       <section className="hero">
+
+        {/* POPUP */}
+        {selectedReservation && (
+          <div
+            style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+            onClick={() => setSelectedReservation(null)}
+          >
+            <div
+              style={{backgroundColor: '#0f172a', border: '2px solid #0ea5e9', borderRadius: '16px', padding: '30px', maxWidth: '480px', width: '90%'}}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                <h2 style={{color: '#0ea5e9', fontSize: '20px'}}>📋 Szczegóły rezerwacji</h2>
+                <button onClick={() => setSelectedReservation(null)} style={{background: 'none', border: 'none', color: '#a0a0b0', fontSize: '24px', cursor: 'pointer'}}>✕</button>
+              </div>
+
+              <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                  <span style={{color: '#a0a0b0'}}>Tor/Stół</span>
+                  <span style={{color: 'white', fontWeight: 'bold'}}>{selectedReservation.resources?.name}</span>
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                  <span style={{color: '#a0a0b0'}}>Godzina</span>
+                  <span style={{color: '#0ea5e9', fontWeight: 'bold'}}>{normalizeTime(selectedReservation.start_time)} - {normalizeTime(selectedReservation.end_time)}</span>
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                  <span style={{color: '#a0a0b0'}}>Klient</span>
+                  <span style={{color: 'white'}}>{selectedReservation.customer_name}</span>
+                </div>
+                <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                  <span style={{color: '#a0a0b0'}}>Telefon</span>
+                  <span style={{color: '#ffaaaa'}}>{selectedReservation.customer_phone || '-'}</span>
+                </div>
+                {selectedReservation.customer_email && (
+                  <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                    <span style={{color: '#a0a0b0'}}>Email</span>
+                    <span style={{color: 'white'}}>{selectedReservation.customer_email}</span>
+                  </div>
+                )}
+                {selectedReservation.osoby && (
+                  <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                    <span style={{color: '#a0a0b0'}}>Liczba osób</span>
+                    <span style={{color: '#00c96e'}}>👥 {selectedReservation.osoby} os.</span>
+                  </div>
+                )}
+                {selectedReservation.opis && (
+                  <div style={{borderBottom: '1px solid #1e3a5f', paddingBottom: '10px'}}>
+                    <span style={{color: '#a0a0b0', display: 'block', marginBottom: '6px'}}>📝 Opis / Faktura</span>
+                    <span style={{color: '#e0c070', whiteSpace: 'pre-wrap'}}>{selectedReservation.opis}</span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                className="delete-btn"
+                style={{marginTop: '20px', width: '100%', padding: '12px'}}
+                onClick={() => handleDelete(selectedReservation.id)}
+              >
+                Usuń rezerwację
+              </button>
+            </div>
+          </div>
+        )}
+
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
           <h1>Panel admina</h1>
           <button className="btn" onClick={handleLogout}>Wyloguj</button>
@@ -478,6 +546,7 @@ export default function Admin() {
 
         <p style={{marginBottom: '20px', color: '#a0a0b0'}}>
           Rezerwacje na: <strong style={{color: 'white'}}>{selectedDate}</strong> — łącznie: {reservations.length}
+          {view === 'grid' && <span style={{fontSize: '13px', color: '#606070'}}> — kliknij na rezerwację aby zobaczyć szczegóły</span>}
         </p>
 
         {view === 'grid' && (
