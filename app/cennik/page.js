@@ -2,7 +2,7 @@
 
 export default function Cennik() {
   return (
-    <PageTransition>
+    
       <main>
         <section className="hero">
           <h1 className="neon-title">Cennik</h1>
@@ -66,6 +66,6 @@ export default function Cennik() {
 
         </section>
       </main>
-    </PageTransition>
+    
   )
 }
