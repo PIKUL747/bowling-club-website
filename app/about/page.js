@@ -2,7 +2,7 @@
 
 export default function About() {
   return (
-    <PageTransition>
+  
       <main>
         <section className="hero">
           <h1 className="neon-title">O nas</h1>
@@ -39,6 +39,6 @@ export default function About() {
           </div>
         </section>
       </main>
-    </PageTransition>
+   
   )
 }

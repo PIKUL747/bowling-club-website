@@ -2,7 +2,7 @@
 
 export default function Contact() {
   return (
-    <PageTransition>
+
       <main>
         <section className="hero">
           <h1 className="neon-title">Kontakt</h1>
@@ -62,6 +62,6 @@ export default function Contact() {
           </div>
         </section>
       </main>
-    </PageTransition>
+    
   )
 }
